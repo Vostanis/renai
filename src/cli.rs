@@ -1,45 +1,39 @@
-use clap::{Args, Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
 pub struct Cli {
     #[command(subcommand)]
-    pub command: Option<Commands>,
+    pub command: Commands,
 }
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Retrieve data from endpoints, specifying which steps of the process to enact.
-    Fetch(FetchArgs),
+    Fetch { actions: Vec<FetchArgs> },
 
     /// Shortcut to retrieve all data from endpoints, running every step.
     FetchAll,
 
     /// Clean up directories of the file store.
-    Rm(RmArgs),
-
-    /// Upload data to the database.
-    Upload(UploadArgs),
+    Rm { directories: Vec<RmArgs> },
 }
 
-#[derive(Args, Debug)]
-pub struct FetchArgs {
+#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
+pub enum FetchArgs {
     /// Get the bulk zip data file.
-    pub bulk: Option<String>,
+    Bulk,
 
     /// Unzip the SEC bulk zip file.
-    pub unzip: Option<String>,
+    Unzip,
+
+    /// Collect price & core data, and upload it.
+    Collection,
 }
 
-#[derive(Args, Debug)]
-pub struct RmArgs {
-    /// Remove the buffer directory, used in holding bulk data.
-    pub buffer: Option<String>,
-}
-
-#[derive(Args, Debug)]
-pub struct UploadArgs {
-    /// Upload all the price & core stock data.
-    pub all: Option<String>,
+#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
+pub enum RmArgs {
+    /// Remove the buffer directory; used in holding bulk data.
+    Buffer,
 }
