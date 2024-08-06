@@ -12,13 +12,14 @@
 
 use anyhow::Result;
 use clap::Parser;
-use futures::{stream, StreamExt};
-use log::error;
-use serde::{Deserialize, Serialize};
+use futures::{
+    stream::{self, Unzip},
+    StreamExt,
+};
 use std::env;
 
 use renai::{
-    cli::Cli,
+    cli::{self, FetchArgs},
     client_ext::{ClientExt, Document},
     endp::{sec, us_company_index as us, yahoo_finance as yf},
     ui,
@@ -29,20 +30,42 @@ fn preprocess() {
     env_logger::init();
 }
 
+async fn client() -> Result<reqwest::Client> {
+    let client = reqwest::ClientBuilder::new()
+        .user_agent(&env::var("USER_AGENT")?)
+        .build()?;
+    Ok(client)
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     preprocess();
 
-    let cli = Cli::parse();
-    println!("{:#?}", cli);
+    let cli = cli::Cli::parse();
+    log::info!("Command line input recorded: {cli:#?}");
 
-    // let client = reqwest::ClientBuilder::new()
-    //     .user_agent(&env::var("USER_AGENT")?)
-    //     .build()?;
+    // cli framework
+    match &cli.command {
+        // run all steps of data collection process (SHORTCUT)
+        cli::Commands::FetchAll => {
+            let all_actions = vec![
+                cli::FetchArgs::Bulk,
+                cli::FetchArgs::Unzip,
+                cli::FetchArgs::Collection,
+            ];
+            process_fetch_args(&all_actions).await?;
+        }
 
-    // fetch bulk core & unzip
-    // fetch()?;                    <--- needs writing with rayon
-    // sec::unzip().await?;
+        // run specified steps of data collection process
+        cli::Commands::Fetch { actions } => {
+            process_fetch_args(actions).await?;
+        }
+
+        // remove directories
+        cli::Commands::Rm { directories } => {
+            log::info!("Removing directories: {directories:#?}"); // <--- todo!
+        }
+    }
 
     // fetch US stock
     // let tickers = Document {
@@ -126,49 +149,26 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-//////////////////////////////////////////////////////////////////////////////////////
-// Output schema
-//////////////////////////////////////////////////////////////////////////////////////
+async fn process_fetch_args(actions: &[cli::FetchArgs]) -> Result<()> {
+    // download bulk SEC file to `./buffer`
+    if actions.contains(&cli::FetchArgs::Bulk) {
+        log::info!("Downloading SEC bulk file ...");
+        // fetch()?; <--- needs writing with rayon
+        log::info!("SEC bulk file downloaded");
+    }
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct StockData {
-    pub core: CoreSet, // (SEC)
-    pub price: PriceSet, // (Yahoo! Finance)
+    // unzip bulk SEC file
+    if actions.contains(&cli::FetchArgs::Unzip) {
+        log::info!("Unzipping SEC bulk file ...");
+        sec::unzip().await?;
+        log::info!("SEC bulk file unzipped");
+    }
 
-                       // todo!
-                       // ------------------------------
-                       // pub patents: Patents, // (Google)
-                       // pub holders: Holders, // (US gov - maybe finnhub)
-                       // pub news: News, // (Google)
+    // collect price & core data, and upload it
+    if actions.contains(&cli::FetchArgs::Collection) {
+        let client = client().await?;
+        client.mass_collection().await?;
+    }
+
+    Ok(())
 }
-
-pub type CoreSet = Vec<sec::CoreCell>;
-// pub type CoreSet = Vec<sec::CoreCell>
-// "core": [
-//      {
-//          "dated": "2021-01-01",
-//          "Revenue": 1298973.0,
-//          "DilutedEPS": 2.7,
-//      },
-//      {
-//          "dated": "2022-01-01",
-//          "Revenue": 23112515.0,
-//          "DilutedEPS": 1.72,
-//      },
-//      ...
-// ]
-
-pub type PriceSet = Vec<yf::PriceCell>;
-// "price": [
-//      {
-//          "dated": "2021-01-01",
-//          "open": 123.0,
-//          "adj_close": 124.2,
-//      },
-//      {
-//          "dated": "2022-01-01",
-//          "open": 124.2,
-//          "adj_close": 122.0,
-//      },
-//      ...
-// ]

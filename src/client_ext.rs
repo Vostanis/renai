@@ -1,11 +1,17 @@
-// use super::Datasets;
+///////////////////////////////////////////////////////
+use crate::endp::sec;
+use crate::endp::us_company_index as us;
 use crate::endp::yahoo_finance as yf;
+use crate::schema;
+use crate::ui;
 use crate::www;
 use anyhow::Result;
+use futures::StreamExt;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::future::Future;
+///////////////////////////////////////////////////////
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 struct CouchDocument {
@@ -43,6 +49,8 @@ pub trait ClientExt {
         ticker: &String,
         title: &String,
     ) -> impl Future<Output = Result<Vec<yf::PriceCell>>> + Send;
+
+    fn mass_collection(&self) -> impl Future<Output = Result<()>> + Send;
 }
 
 impl ClientExt for Client {
@@ -150,5 +158,89 @@ impl ClientExt for Client {
     ) -> Result<Vec<yf::PriceCell>> {
         let out = yf::extran(&self, www::price_url(ticker).await, ticker, title).await?;
         Ok(out)
+    }
+
+    /// Get, collect, & upload all available datasets.
+    async fn mass_collection(&self) -> Result<()> {
+        // fetch US stock
+        let tickers = Document {
+            _id: "us_index".to_string(),
+            _rev: "".to_string(),
+            data: us::extran(&self).await?,
+        };
+        let _upload_index = &self
+            .insert_doc(
+                &tickers,
+                &std::env::var("DATABASE_URL")?,
+                &format!("stock/{}", tickers._id),
+            )
+            .await
+            .expect("failed to insert index doc");
+
+        // collect data
+        use std::sync::Arc;
+        use tokio::sync::Mutex;
+        let pb = Arc::new(Mutex::new(ui::single_pb(tickers.data.len() as u64)));
+        let stream = futures::stream::iter(tickers.data)
+            .map(|company| {
+                let client = &self;
+                let pb = pb.clone();
+                async move {
+                    // fetch fundamentals
+                    let core = match sec::extran(&company.cik_str).await {
+                        Ok(data) => data,
+                        Err(e) => {
+                            log::error!("Failed to fetch fundamentals: {:#?}", e);
+                            return Err(e);
+                        }
+                    };
+
+                    // fetch price
+                    let price = match client
+                        .fetch_price_data(&company.ticker, &company.title)
+                        .await
+                    {
+                        Ok(data) => data,
+                        Err(e) => {
+                            log::error!("Failed to fetch price data: {:#?}", e);
+                            return Err(e);
+                        }
+                    };
+
+                    // build doc
+                    let document = Document {
+                        _id: company.ticker.clone(),
+                        _rev: "".to_string(),
+                        data: schema::StockData { core, price },
+                    };
+
+                    // upload doc
+                    client
+                        .insert_doc(
+                            &document,
+                            &std::env::var("DATABASE_URL")
+                                .expect("failed to retrieve environment variable: DATABASE_URL"),
+                            &format!("stock/{}", company.ticker),
+                        )
+                        .await
+                        .expect("failed to insert doc");
+                    pb.lock().await.inc(1);
+                    Ok(())
+                }
+            })
+            .buffer_unordered(num_cpus::get());
+
+        stream
+            .for_each(|fut| async {
+                match fut {
+                    Ok(_) => {}
+                    Err(e) => {
+                        log::error!("Error processing company: {:#?}", e);
+                    }
+                }
+            })
+            .await;
+
+        Ok(())
     }
 }
