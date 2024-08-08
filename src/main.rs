@@ -64,16 +64,7 @@ async fn main() -> Result<()> {
 
         // "> renai test"
         // used to test functions
-        cli::Commands::Test => {
-            // incredibley slow
-            let client = client()?;
-            client
-                .fetch_file(
-                    "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip",
-                    "./buffer/example.zip",
-                )
-                .await?
-        }
+        cli::Commands::Test => {}
     }
 
     Ok(())
@@ -83,7 +74,13 @@ async fn process_fetch_args(actions: &[cli::FetchArgs]) -> Result<()> {
     // download bulk SEC file to `./buffer`
     if actions.contains(&cli::FetchArgs::Bulk) {
         log::info!("Downloading SEC bulk file ...");
-        // renai::endp::sec::fetch().await?; <--- needs writing with rayon
+        let client = client()?;
+        client
+            .download_file(
+                "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip",
+                "./buffer/companyfacts.zip",
+            )
+            .await?;
         log::info!("SEC bulk file downloaded");
     }
 
