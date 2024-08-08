@@ -1,4 +1,3 @@
-///////////////////////////////////////////////////////
 use crate::endp::sec;
 use crate::endp::us_company_index as us;
 use crate::endp::yahoo_finance as yf;
@@ -19,10 +18,8 @@ use tokio::{
     sync::Mutex,
     time::sleep,
 };
-///////////////////////////////////////////////////////
 
-const CHUNK_SIZE: u64 = 10 * 1024 * 1024; // 10 MB
-const REQUESTS_PER_SECOND: usize = 10;
+const CHUNK_SIZE: u64 = 100 * 1024 * 1024; // 100 MB
 
 /// Used in (de)serializing document transfers in the
 /// CouchDB protocol; see [`insert_doc()`] for more.
@@ -61,7 +58,7 @@ pub trait ClientExt {
 
     fn mass_collection(&self) -> impl Future<Output = Result<()>> + Send;
 
-    fn fetch_file(&self, url: &str, path: &str) -> impl Future<Output = Result<()>> + Send;
+    fn download_file(&self, url: &str, path: &str) -> impl Future<Output = Result<()>> + Send;
 
     fn download_chunk(
         &self,
@@ -192,8 +189,6 @@ impl ClientExt for Client {
             .expect("failed to insert index doc");
 
         // collect data
-        use std::sync::Arc;
-        use tokio::sync::Mutex;
         let pb = Arc::new(Mutex::new(ui::single_pb(tickers.data.len() as u64)));
         let stream = futures::stream::iter(tickers.data)
             .map(|company| {
@@ -259,7 +254,7 @@ impl ClientExt for Client {
     /// the download process with [`rayon`].
     ///
     /// [`rayon`]: https://docs.rs/rayon/latest/rayon/
-    async fn fetch_file(&self, url: &str, path: &str) -> Result<()> {
+    async fn download_file(&self, url: &str, path: &str) -> Result<()> {
         use reqwest::header::CONTENT_LENGTH;
 
         let client = self;
@@ -275,10 +270,12 @@ impl ClientExt for Client {
 
         // Build a progress bar
         let pb = ProgressBar::new(file_size);
-        pb.set_style(ProgressStyle::default_bar()
-            .template("{spinner} <{elapsed_precise}> [{bar:40}] {bytes}/{total_bytes} ({eta})")?
-            // .tick_chars("...")
-            .progress_chars("#|-"));
+        pb.set_style(
+            ProgressStyle::default_bar()
+                .template("{spinner} [{elapsed_precise}] [{bar:40}] {bytes}/{total_bytes} ({eta})")?
+                .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
+                .progress_chars("#|-"),
+        );
         let pb = Arc::new(pb);
 
         // Initialise central variables of async process
@@ -287,7 +284,7 @@ impl ClientExt for Client {
         let num_chunks = (file_size + CHUNK_SIZE - 1) / CHUNK_SIZE;
         let mut tasks = Vec::with_capacity(num_chunks as usize);
 
-        // Build each async tasks
+        // Build each async task and push to tasks
         for i in 0..num_chunks {
             let start = i * CHUNK_SIZE;
             let end = std::cmp::min((i + 1) * CHUNK_SIZE, file_size);
@@ -298,8 +295,6 @@ impl ClientExt for Client {
             tasks.push(tokio::spawn(async move {
                 let mut file = file.lock().await;
                 let _download_chunk = client.download_chunk(&url, start, end, &mut file).await;
-
-                // let mut pb = pb.lock().await;
                 pb.inc(end - start);
             }));
         }
@@ -310,6 +305,15 @@ impl ClientExt for Client {
             outputs.push(task.await.unwrap());
             sleep(std::time::Duration::from_secs(1)).await;
         }
+
+        let file = Arc::try_unwrap(file).unwrap().into_inner();
+        let msg = format!(
+            "{} downloaded succesfully ({})",
+            path,
+            indicatif::HumanBytes(file.metadata().await?.len())
+        );
+        let pb = Arc::try_unwrap(pb).unwrap();
+        pb.finish_with_message(msg);
 
         Ok(())
     }
@@ -326,15 +330,17 @@ impl ClientExt for Client {
         let url = url.to_string();
         let range = format!("bytes={}-{}", start, end - 1);
 
+        // download a range of bytes
         let response = client
             .get(url)
             .header(reqwest::header::RANGE, range)
             .send()
             .await?;
 
+        // seek the position of bytes and write to the file
         let body = response.bytes().await?;
-        let _seek = output_file.seek(tokio::io::SeekFrom::Start(start)).await;
-        let _write = output_file.write_all(&body).await;
+        let _seek = output_file.seek(tokio::io::SeekFrom::Start(start)).await?;
+        let _write = output_file.write_all(&body).await?;
         Ok(())
     }
 }
