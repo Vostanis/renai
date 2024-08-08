@@ -6,12 +6,14 @@ A dataspace for financial information; includes:
 # todo!
 - [ ] cli
   - [ ] bulk download
-  - [ ] bulk zip
-  - [ ] download prices
+    - [ ] build bulk_download() ClientExt
+  - [x] bulk zip
+  - [x] download prices
   - [ ] delete bulk
-- [ ] multiprogress bar
-  - [ ] tracking successes & failures
-  - [ ] updating msgs
+- [ ] official comments on the rust code
+- [ ] slick progress bar
+  - [ ] tracking successes & failures (OPTIONAL)
+  - [ ] updating msgs (REQUIRED)
 - [ ] python library
   - [ ] price & core shortcut
 - [ ] jupyter research

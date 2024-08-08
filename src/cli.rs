@@ -11,13 +11,19 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Retrieve data from endpoints, specifying which steps of the process to enact.
-    Fetch { actions: Vec<FetchArgs> },
+    Fetch {
+        actions: Vec<FetchArgs>,
+    },
 
     /// Shortcut to retrieve all data from endpoints, running every step.
     FetchAll,
 
     /// Clean up directories of the file store.
-    Rm { directories: Vec<RmArgs> },
+    Rm {
+        directories: Vec<RmArgs>,
+    },
+
+    Test,
 }
 
 #[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
