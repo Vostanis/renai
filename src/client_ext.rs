@@ -272,11 +272,16 @@ impl ClientExt for Client {
         let pb = ProgressBar::new(file_size);
         pb.set_style(
             ProgressStyle::default_bar()
-                .template("{spinner} [{elapsed_precise}] [{bar:40}] {bytes}/{total_bytes} ({eta})")?
-                .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
+                .template("[{elapsed_precise}] [{bar:40}] {bytes}/{total_bytes} ({eta})")?
                 .progress_chars("#|-"),
         );
         let pb = Arc::new(pb);
+
+        // Ensure the directory exists
+        let dir_path = std::path::Path::new(path)
+            .parent()
+            .ok_or_else(|| anyhow::anyhow!("Failed to get directory path"))?;
+        tokio::fs::create_dir_all(dir_path).await?;
 
         // Initialise central variables of async process
         let file = File::create(path).await?;
@@ -306,6 +311,7 @@ impl ClientExt for Client {
             sleep(std::time::Duration::from_secs(1)).await;
         }
 
+        // Finish the progress bar
         let file = Arc::try_unwrap(file).unwrap().into_inner();
         let msg = format!(
             "{} downloaded succesfully ({})",

@@ -59,7 +59,10 @@ async fn main() -> Result<()> {
         // "> renai rm [buffer]"
         // remove directories
         cli::Commands::Rm { directories } => {
-            log::info!("Removing directories: {directories:#?}"); // <--- todo!
+            if directories.contains(&cli::RmArgs::Buffer) {
+                tokio::fs::remove_dir_all("./buffer").await?;
+            }
+            log::info!("Removing directories: {directories:#?}");
         }
 
         // "> renai test"

@@ -5,11 +5,11 @@ A dataspace for financial information; includes:
 
 # todo!
 - [ ] cli
-  - [ ] bulk download
-    - [ ] build bulk_download() ClientExt
+  - [x] bulk download
+    - [x] build bulk_download() ClientExt
   - [x] bulk zip
   - [x] download prices
-  - [ ] delete bulk
+  - [x] delete bulk
 - [ ] official comments on the rust code
 - [ ] slick progress bar
   - [ ] tracking successes & failures (OPTIONAL)
