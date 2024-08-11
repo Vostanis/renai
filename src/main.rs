@@ -9,168 +9,96 @@
 //   ░░   ░    ░      ░   ░ ░   ░   ▒    ▒ ░
 //    ░        ░  ░         ░       ░  ░ ░
 // =========================================
-//
-// todo!
-// ----------------------
-// 1. init git repo
-// 2. add clap cli
-// 3. a) add multiprogress bar, tracking successes and failures
-//    b) update message to track what's happening
-// 4. build python library
-// 5. visuals app
-// 6. 
 
 use anyhow::Result;
-use futures::{stream, StreamExt};
-use log::error;
-use renai::client_ext::{ClientExt, Document};
-use renai::endp::{sec, us_company_index as us, yahoo_finance as yf};
-use renai::ui;
-use serde::{Deserialize, Serialize};
-use std::env;
+use clap::Parser;
+use renai::{cli, client_ext::ClientExt};
 
 fn preprocess() {
+    // grant access to .env
     dotenv::dotenv().ok();
+
+    // initialise logger
     env_logger::init();
+}
+
+fn client() -> Result<reqwest::Client> {
+    let client = reqwest::ClientBuilder::new()
+        .user_agent(&std::env::var("USER_AGENT")?)
+        .build()?;
+    Ok(client)
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     preprocess();
 
-    let client = reqwest::ClientBuilder::new()
-        .user_agent(&env::var("USER_AGENT")?)
-        .build()?;
+    let cli = cli::Cli::parse();
+    log::info!("Command line input recorded: {cli:#?}");
 
-    // fetch bulk core & unzip
-    // fetch()?;                    <--- needs writing with rayon
-    // sec::unzip().await?;
+    // cli framework:
+    // "> renai <COMMAND>"
+    match &cli.command {
+        // "> renai fetch-all"
+        // run all steps of data collection process (SHORTCUT)
+        cli::Commands::FetchAll => {
+            let all_actions = vec![
+                cli::FetchArgs::Bulk,
+                cli::FetchArgs::Unzip,
+                cli::FetchArgs::Collection,
+            ];
+            process_fetch_args(&all_actions).await?;
+        }
 
-    // fetch US stock
-    let tickers = Document {
-        _id: "us_index".to_string(),
-        _rev: "".to_string(),
-        data: us::extran(&client).await?,
-    };
-    // client
-    //     .insert_doc(
-    //         &tickers,
-    //         &env::var("DATABASE_URL")?,
-    //         &format!("stock/{}", tickers._id),
-    //     )
-    //     .await
-    //     .expect("failed to insert index doc");
+        // "> renai fetch [bulk unzip collection]"
+        // run specified steps of data collection process
+        cli::Commands::Fetch { actions } => {
+            process_fetch_args(actions).await?;
+        }
 
-    // collect data
-    use std::sync::Arc;
-    use tokio::sync::Mutex;
-    let pb = Arc::new(Mutex::new(ui::single_pb(tickers.data.len() as u64)));
-    let stream = stream::iter(tickers.data)
-        .map(|company| {
-            let client = &client;
-            let pb = pb.clone();
-            async move {
-                // fetch fundamentals
-                let core = match sec::extran(&company.cik_str).await {
-                    Ok(data) => data,
-                    Err(e) => {
-                        error!("Failed to fetch fundamentals: {:#?}", e);
-                        return Err(e);
-                    }
-                };
-
-                // fetch price
-                let price = match client
-                    .fetch_price_data(&company.ticker, &company.title)
-                    .await
-                {
-                    Ok(data) => data,
-                    Err(e) => {
-                        error!("Failed to fetch price data: {:#?}", e);
-                        return Err(e);
-                    }
-                };
-
-                // build doc
-                let document = Document {
-                    _id: company.ticker.clone(),
-                    _rev: "".to_string(),
-                    data: StockData { core, price },
-                };
-
-                // upload doc
-                client
-                    .insert_doc(
-                        &document,
-                        &env::var("DATABASE_URL")
-                            .expect("failed to retrieve environment variable: DATABASE_URL"),
-                        &format!("stock/{}", company.ticker),
-                    )
-                    .await
-                    .expect("failed to insert doc");
-                pb.lock().await.inc(1);
-                Ok(())
+        // "> renai rm [buffer]"
+        // remove directories
+        cli::Commands::Rm { directories } => {
+            if directories.contains(&cli::RmArgs::Buffer) {
+                tokio::fs::remove_dir_all("./buffer").await?;
             }
-        })
-        .buffer_unordered(num_cpus::get());
+            log::info!("Removing directories: {directories:#?}");
+        }
 
-    stream
-        .for_each(|fut| async {
-            match fut {
-                Ok(_) => {}
-                Err(e) => {
-                    error!("Error processing company: {:#?}", e);
-                }
-            }
-        })
-        .await;
+        // "> renai test"
+        // used to test functions
+        cli::Commands::Test => {}
+    }
 
     Ok(())
 }
 
-//////////////////////////////////////////////////////////////////////////////////////
-// Output schema
-//////////////////////////////////////////////////////////////////////////////////////
+async fn process_fetch_args(actions: &[cli::FetchArgs]) -> Result<()> {
+    // download bulk SEC file to `./buffer`
+    if actions.contains(&cli::FetchArgs::Bulk) {
+        log::info!("Downloading SEC bulk file ...");
+        let client = client()?;
+        client
+            .download_file(
+                "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip",
+                "./buffer/companyfacts.zip",
+            )
+            .await?;
+        log::info!("SEC bulk file downloaded");
+    }
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct StockData {
-    pub core: CoreSet, // (SEC)
-    pub price: PriceSet, // (Yahoo! Finance)
+    // unzip bulk SEC file
+    if actions.contains(&cli::FetchArgs::Unzip) {
+        log::info!("Unzipping SEC bulk file ...");
+        renai::endp::sec::unzip().await?;
+        log::info!("SEC bulk file unzipped");
+    }
 
-    // todo!
-    // ------------------------------
-    // pub patents: Patents, // (Google)
-    // pub holders: Holders, // (US gov - maybe finnhub)
-    // pub news: News, // (Google)
+    // collect price & core data, and upload it
+    if actions.contains(&cli::FetchArgs::Collection) {
+        let client = client()?;
+        client.mass_collection().await?;
+    }
+
+    Ok(())
 }
-
-pub type CoreSet = Vec<sec::CoreCell>;
-// pub type CoreSet = Vec<sec::CoreCell>
-// "core": [
-//      {
-//          "dated": "2021-01-01",
-//          "Revenue": 1298973.0,
-//          "DilutedEPS": 2.7,
-//      },
-//      {
-//          "dated": "2022-01-01",
-//          "Revenue": 23112515.0,
-//          "DilutedEPS": 1.72,
-//      },
-//      ...
-// ]
-
-pub type PriceSet = Vec<yf::PriceCell>;
-// "price": [
-//      {
-//          "dated": "2021-01-01",
-//          "open": 123.0,
-//          "adj_close": 124.2,
-//      },
-//      {
-//          "dated": "2022-01-01",
-//          "open": 124.2,
-//          "adj_close": 122.0,
-//      },
-//      ...
-// ]
