@@ -12,7 +12,7 @@
 
 use anyhow::Result;
 use clap::Parser;
-use renai::{cli, client_ext::ClientExt};
+use renai_fs::{cli, client_ext::ClientExt};
 
 fn preprocess() {
     // grant access to .env
@@ -90,7 +90,7 @@ async fn process_fetch_args(actions: &[cli::FetchArgs]) -> Result<()> {
     // unzip bulk SEC file
     if actions.contains(&cli::FetchArgs::Unzip) {
         log::info!("Unzipping SEC bulk file ...");
-        renai::endp::sec::unzip().await?;
+        renai_fs::endp::sec::unzip().await?;
         log::info!("SEC bulk file unzipped");
     }
 
