@@ -8,9 +8,7 @@ import numpy as np
 import os # env vars
 from dotenv import load_dotenv
 
-dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env')
-load_dotenv(dotenv_path)
-
+load_dotenv("../.env")
 BASE = os.getenv("DATABASE_URL")
 
 class Index:
