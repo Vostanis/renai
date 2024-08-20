@@ -12,7 +12,7 @@
 
 use anyhow::Result;
 use clap::Parser;
-use renai_fs::{cli, client_ext::ClientExt};
+use renai_fs::{cli, client_ext::ClientExt, www};
 
 fn preprocess() {
     // grant access to .env
@@ -67,7 +67,10 @@ async fn main() -> Result<()> {
 
         // "> renai test"
         // used to test functions
-        cli::Commands::Test => {}
+        cli::Commands::Test => {
+            let url = www::price_url("AAPL").await;
+            println!("{}", url);
+        }
     }
 
     Ok(())

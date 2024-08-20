@@ -16,27 +16,29 @@
       "ticker": "MSFT",
       "title": "MICROSOFT CORP"
     },
-    ...
+    // ...
   ]
 }
 ```
+> **source** : "https://www.sec.gov/files/company_tickers.json"
 
 ## stock/{TICKER}
+Using `stock/AAPL`:
 ```json
 {
   "_id": "AAPL",
   "_rev": "27-f2357921b0e458d483c1f0a747efe881",
   "data": {
-    core: [
+    "core": [
         {
             "MetricOne": 213123.0,
             "MetricTwo": 32423.0,
-            ...
+            // ...
             "MetricX": 0.5,
         },
-        ...
+        // ...
     ],
-    price: [
+    "price": [
         {
             "adj_close": 143.85025024414062,
             "close": 146.08999633789062,
@@ -46,28 +48,46 @@
             "open": 146.1999969482422,
             "volume": 48908700
         },
-        ...
+        // ...
     ],
   }
 }
 ```
+> **source**
+> - `price`: "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?symbol=AAPL&interval=1d&range=3y&events=div|split|capitalGains"
+> - `core`: "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip" <-- *this is a 1.1gb bulk .zip file*
 
 # PostgreSQL
 
 ## stock.index
-+-------------------------------------------------------+
-| pk | ticker | title | [(industry)][1] | [(nation)][1] |
-+-------------------------------------------------------+
+```sql
+CREATE TABLE stock.index IF NOT EXISTS (
+    pk SERIAL PRIMARY KEY,
+    ticker VARCHAR,
+    title VARCHAR
+);
+```
 
 ## stock.cores
-+--------------------------------------------+
-| pk | MetricOne | MetricTwo | ... | MetricX |
-+--------------------------------------------+
+```sql
+CREATE TABLE stock.prices IF NOT EXISTS (
+    pk SERIAL PRIMARY KEY,
+    "MetricOne" NUMERIC,
+    "MetricTwo" NUMERIC,
+    -- ...
+    "MetricX" NUMERIC,
+);
+```
 
 ## stock.prices
-+-----------------------------------------------------+
-| pk | high | open | low | close | adj_close | volume |
-+-----------------------------------------------------+
-
-Note:
-- [1] `()` denotes *columns to be added*, but are not yet available.
+```sql
+CREATE TABLE stock.prices IF NOT EXISTS (
+    pk SERIAL PRIMARY KEY,
+    high NUMERIC,
+    open NUMERIC,
+    low NUMERIC,
+    close NUMERIC,
+    adj_close NUMERIC,
+    volume BIGINT
+);
+```
