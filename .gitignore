@@ -1,5 +1,6 @@
 /target
 /buffer
 /couchdb_data
+/postgres_data
 /dbdata
 .env

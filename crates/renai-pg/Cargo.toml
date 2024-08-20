@@ -1,5 +1,5 @@
 [package]
-name = "renai-gui"
+name = "renai-pg"
 version = "0.1.0"
 edition = "2021"
 

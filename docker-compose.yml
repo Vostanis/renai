@@ -1,6 +1,6 @@
 services:
   couchdb:
-    image: couchdb:latest
+    image: couchdb:3.3.3
     restart: always
     container_name: renai-fs
     environment:
@@ -11,5 +11,19 @@ services:
     volumes:
       - ./couchdb_data:/opt/couchdb/data
 
+  postgres:
+    image: postgres:16.4
+    restart: always
+    container_name: renai-pg
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+
 volumes:
   couchdb_data:
+  postgres_data:

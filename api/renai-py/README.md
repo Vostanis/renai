@@ -5,3 +5,4 @@ from renai import Stock
 
 nvda = Stock("NVDA").price()
 ```
+
