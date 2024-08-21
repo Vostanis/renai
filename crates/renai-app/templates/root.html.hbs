@@ -8,45 +8,30 @@
     <title>renai</title>
     <style>
         header {
-            display: flex;
-            justify-content: space-between;
+            display: flexbox;
+            justify-content: center;
             align-items: center;
-            padding: 0 500px;
-        }
-        header h1 {
-            margin: 0;
-        }
-        header a {
-            color: lightslategrey;
-            text-decoration: none;
+            padding: 33%;
         }
         .search-bar {
-            display: flex;
-            justify-content: center;
-            padding: 0;
-            width: 100%;
-
-        }
-        .search-bar input[type="text"] {
-            flex: 1;
-            margin-right: 10px;
-            padding: 10px;
-            height: 50px;
-            width: calc(100% - 0px);
+            display: flexbox;
+            padding: 0 16%;
         }
     </style>
 </head>
 <body>
 <header>
-    <a href="/stocks" id="stocks">Stocks</a>
-    <a href="/crypto" id="crypto">Crypto</a>
-    <h1>{{message}}</h1> <!-- Assuming {{message}} is your TITLE -->
-    <a href="/global" id="global">Global</a>
-    <a href="/models" id="models">Models</a>
+    <nav>
+        <a href="/stocks" id="stocks">Stocks</a>
+        <a href="/crypto" id="crypto">Crypto</a>
+        <h1>{{message}}</h1>
+        <a href="/global" id="global">Global</a>
+        <a href="/models" id="models">Models</a>
+    </nav>
 </header>
 <div class="search-bar">
     <form action="/search" method="get">
-        <input type="text" name="q" placeholder="Search...">
+        <input type="text" name="q" placeholder="Search ...">
         <button type="submit">Search</button>
     </form>
 </div>
