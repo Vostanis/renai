@@ -41,6 +41,13 @@
             height: 24px;
             font-size: 14px;
         }
+        #graphContainer {
+            display: flex;
+            width: 100%; /* Example: make the container (and thus the canvas) 80% of its parent's width */
+            max-width: 1200px; /* Optional: set a max-width for the container */
+            margin: auto; /* Center the container */
+            height: fit-content;    
+        }
     </style>
 </head>
 <body>
@@ -63,7 +70,9 @@
     </form>
 </div>
 
-<canvas id="revenueGraph"></canvas>
+<div id="graphContainer">
+    <canvas id="revenueGraph"></canvas>
+</div>
 
 {{!-- Shift+S shortcut to Search Bar --}}
 <script>

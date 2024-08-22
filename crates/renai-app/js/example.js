@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var ctx = document.getElementById('revenueGraph').getContext('2d');
     new Chart(ctx, {
         // Your Chart.js graph configuration here
-        type: 'line', // Example: 'line', 'bar', etc.
+        type: 'bar', // Example: 'line', 'bar', etc.
         data: {
             labels: ['January', 'February', 'March', 'April'], // Example labels
             datasets: [{
