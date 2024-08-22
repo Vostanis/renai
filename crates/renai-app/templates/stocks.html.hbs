@@ -1,0 +1,92 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link href="/public/pico.css" rel="stylesheet">
+    <title>renai</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        header {
+            display: flexbox;
+            justify-content: center;
+            align-items: center;
+            padding: 33%;
+        }
+        header a {
+            display: flex;
+            color: darkgray;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+        header a:hover { cursor: pointer; }
+        #home:hover { color: green }
+        #stocks:hover { color:dodgerblue }
+        #crypto:hover { color: orange }
+        #global:hover { color: tomato }
+        #necromanc-ai:hover { color:mediumpurple; }
+        
+        .search-bar {
+            display: flexbox;
+            justify-content: center;
+            padding: 0 16%;
+        }
+        .search-bar input[type="text"] {
+            height: 20px;
+            font-size: 18px;
+        }
+        .search-bar button {
+            height: 24px;
+            font-size: 14px;
+        }
+        #graphContainer {
+            display: flex;
+            width: 100%; /* Example: make the container (and thus the canvas) 80% of its parent's width */
+            max-width: 1200px; /* Optional: set a max-width for the container */
+            margin: auto; /* Center the container */
+            height: fit-content;    
+        }
+    </style>
+</head>
+<body>
+
+{{!-- home crypto [ stocks ] global necromanc.ai --}}
+<header>
+    <nav>
+        <a href="/" id="home">home</a>
+        <a href="/crypto" id="crypto">crypto</a>
+        <h1>[ stocks ]</h1>
+        <a href="/global" id="global">global</a>
+        <a href="/necromanc-ai" id="necromanc-ai">necromanc-ai</a>
+    </nav>
+</header>
+
+{{!-- Search for ... --}}
+<div class="search-bar">
+    <form action="/search" method="get">
+        <input type="text" name="q" placeholder="[ Shift + S ] Search for stock ...", id="searchInput">
+    </form>
+</div>
+
+<div id="graphContainer">
+    <canvas id="revenueGraph"></canvas>
+</div>
+
+{{!-- Shift+S shortcut to Search Bar --}}
+<script>
+document.addEventListener('keydown', function(event) {
+    // Check if Shift and S are pressed together
+    if (event.shiftKey && event.key === 'S') {
+        // Prevent default action to avoid any conflict
+        event.preventDefault();
+        // Focus on the search input
+        document.getElementById('searchInput').focus();
+    }
+});
+</script>
+
+<script src="../js/example.js" defer></script>
+</body>
+</html>
