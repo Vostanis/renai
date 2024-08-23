@@ -62,10 +62,7 @@ src/
 				uk.rs
 				us.rs
 
-			price/			<--- all comes from yahoo-finance
-				fetch.rs
-				mod.rs
-
+			price.rs
 			mod.rs
 			fetch.rs
 

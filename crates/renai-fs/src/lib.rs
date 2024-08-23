@@ -6,3 +6,5 @@ pub mod ui;
 pub mod www;
 
 pub mod fetch;
+
+pub mod schema2;
