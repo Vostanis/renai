@@ -73,7 +73,10 @@ async fn process_fetch_args(actions: &[cli::FetchArgs]) -> Result<()> {
     // unzip bulk SEC file
     if actions.contains(&cli::FetchArgs::Unzip) {
         log::info!("Unzipping SEC bulk file ...");
-        renai_fs::endp::sec::unzip().await?;
+        renai_common::fs::unzip(
+            "./buffer/companyfacts.zip",
+            "./buffer/companyfacts"
+        ).await?;
         log::info!("SEC bulk file unzipped");
     }
 
