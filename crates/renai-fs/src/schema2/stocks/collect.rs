@@ -1,10 +1,10 @@
 use super::core::us::CoreCell;
-use super::price::PriceCell;
+use super::price::yahoo_finance::PriceCell;
 use serde::{Deserialize, Serialize};
 
 /// Final output data collection for a single stock (e.g., Apple, Nvidia, Meta, etc.)
 #[derive(Deserialize, Serialize, Debug)]
-pub struct StockData {
+pub struct StockDataset {
     pub core: CoreSet,
     pub price: PriceSet,
 
@@ -15,7 +15,7 @@ pub struct StockData {
                        // pub news: News, // (Google)
 }
 
-impl StockData {
+impl StockDataset {
     async fn _collect(_ticker: &str) {
         todo!()
     }

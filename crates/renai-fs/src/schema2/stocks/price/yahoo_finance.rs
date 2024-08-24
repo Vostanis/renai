@@ -1,7 +1,7 @@
+use super::de_timestamps_to_naive_date;
 use anyhow::Result;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use super::common_de::de_timestamps_to_naive_date;
 
 pub async fn fetch(
     client: &Client,
