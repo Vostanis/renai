@@ -20,6 +20,6 @@ renai-app = { version = "0.1.0", path = "../renai-app" }
 renai-client = { version = "0.1.0", path = "../renai-client" }
 renai-common = { version = "0.1.0", path = "../renai-common" }
 renai-fs = { version = "0.1.0", path = "../renai-fs" }
-renai-pg = { version = "0.1.0", path = "../renai-pg" }
+renai-postgres = { version = "0.1.0", path = "../renai-postgres" }
 reqwest.workspace = true
 tokio.workspace = true

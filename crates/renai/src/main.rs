@@ -14,6 +14,7 @@ fn preprocess() {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    preprocess();
     let cli = cli::Cli::parse();
     log::info!("Command line input recorded: {cli:#?}");
 
@@ -49,7 +50,12 @@ async fn main() -> Result<()> {
         // "> renai test"
         // used to test functions
         cli::Commands::Test => {
-            println!("No CLI tests in place, at the moment")
+            let db = renai_fs::db::Database::new(
+                "admin:password@localhost:5984"
+            )?;
+            db.fetch([
+                "stocks",
+            ].to_vec()).await?;
         }
     }
 
@@ -81,10 +87,10 @@ async fn process_fetch_args(actions: &[cli::FetchArgs]) -> Result<()> {
     }
 
     // collect price & core data, and upload it
-    if actions.contains(&cli::FetchArgs::Collection) {
-        let client = build_client()?;
-        client.mass_collection().await?;
-    }
+    // if actions.contains(&cli::FetchArgs::Collection) {
+    //     let client = build_client()?;
+    //     client.mass_collection().await?;
+    // }
 
     Ok(())
 }

@@ -3,14 +3,18 @@ use anyhow::Result;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
+const INTERVAL: &str = "1d";
+const RANGE: &str = "3y";
+
 pub async fn fetch(
     client: &Client,
-    price_url: String,
+    // price_url: String,
     ticker: &String,
     title: &String,
 ) -> Result<Vec<PriceCell>> {
     let price = {
-        let price_response: PriceHistory = client.get(price_url).send().await?.json().await?;
+        let url = url(&ticker).await;
+        let price_response: PriceHistory = client.get(url).send().await?.json().await?;
 
         match price_response.chart.result {
             Some(data) => {
@@ -48,6 +52,14 @@ pub async fn fetch(
         }
     };
     Ok(price)
+}
+
+async fn url(ticker: &str) -> String {
+    format!(
+        "https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?symbol={ticker}&interval={}&range={}&events=div|split|capitalGains",
+        INTERVAL,
+        RANGE
+    )
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

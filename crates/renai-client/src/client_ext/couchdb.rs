@@ -1,15 +1,38 @@
+// use crate::client_ext::
 use anyhow::Result;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::future::Future;
 
+///  CouchDB Document definition.
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Document<T> {
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub _id: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub _rev: String,
+    pub data: T,
+}
+
+/// Shortcut macro for defining CouchDB Documents.
+#[macro_export]
+macro_rules! doc {
+    ($doc_id:expr, $data:expr) => {
+        renai_client::client_ext::couchdb::Document {
+            _id: $doc_id.to_string(),
+            _rev: "".to_string(),
+            data: $data,
+        }
+    };
+}
+
 /// Used in (de)serializing document transfers in the
 /// CouchDB protocol; see [`insert_doc()`] for more.
 ///
 /// [`insert_doc()`]: ./trait.ClientCouchExt.html#method.insert_doc
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct CouchDocument {
+pub struct DocumentMeta {
     _id: String,
     _rev: String,
 }
@@ -52,7 +75,7 @@ impl ClientCouchExt for Client {
                     .text()
                     .await
                     .expect("failed to translate response to text");
-                let current_file: CouchDocument = serde_json::from_str(&text)
+                let current_file: DocumentMeta = serde_json::from_str(&text)
                     .expect("failed to read current revision to serde schema");
 
                 // PUT the file up with current Revision ID

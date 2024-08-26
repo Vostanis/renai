@@ -2362,7 +2362,7 @@ dependencies = [
  "renai-client",
  "renai-common",
  "renai-fs",
- "renai-pg",
+ "renai-postgres",
  "reqwest",
  "tokio",
 ]
@@ -2430,7 +2430,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "renai-pg"
+name = "renai-postgres"
 version = "0.1.0"
 dependencies = [
  "sqlx",

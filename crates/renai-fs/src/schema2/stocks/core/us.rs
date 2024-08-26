@@ -7,6 +7,7 @@ use rayon::prelude::*;
 use serde::Deserializer;
 use std::sync::Mutex;
 
+
 pub async fn fetch(cik_str: &str) -> Result<Vec<CoreCell>> {
     let path = format!("./buffer/companyfacts/CIK{}.json", cik_str);
     let out: SecCompany = renai_common::fs::read_json(&path).await?;
