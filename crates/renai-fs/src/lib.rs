@@ -9,4 +9,4 @@
 /// ]).await
 /// ```
 pub mod db;
-pub mod schema2;
+pub mod schema;

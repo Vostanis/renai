@@ -1,7 +1,7 @@
 use anyhow::Result;
 use renai_client::prelude::*;
 
-use crate::schema2;
+use crate::schema;
 
 #[allow(dead_code)]
 pub struct Database {
@@ -39,7 +39,7 @@ impl Database {
         // find all the schematic.rs scripts in schema/{args[i]} and run them
         for arg in args {
             match arg {
-                "stocks" => schema2::stocks::exe::exe(&self.client).await?,
+                "stocks" => schema::stocks::exe::exe(&self.client).await?,
                 _ => unreachable!()
             }
         }
