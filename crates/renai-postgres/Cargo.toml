@@ -7,7 +7,10 @@ edition = "2021"
 
 [dependencies]
 anyhow.workspace = true
+futures.workspace = true
 renai-client = { version = "0.1.0", path = "../renai-client" }
 renai-fs = { version = "0.1.0", path = "../renai-fs" }
-sqlx.workspace = true
-# tokio-postgres = "0.7.11"
+tokio.workspace = true
+# sqlx.workspace = true
+tokio-postgres = "0.7.11"
+tokio-stream = "0.1.15"

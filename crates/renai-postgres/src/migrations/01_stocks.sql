@@ -1,21 +1,23 @@
 CREATE SCHEMA IF NOT EXISTS stocks;
 
 CREATE TABLE IF NOT EXISTS stocks.index (
-    id          PRIMARY KEY,
-    ticker      VARCHAR,
-    title       VARCHAR,
+    pk_stocks   CHAR(10) PRIMARY KEY,
+    ticker      VARCHAR(8),
+    title       VARCHAR(255),
 );
 
 CREATE TABLE IF NOT EXISTS stocks.price (
-    id          PRIMARY KEY,
+    pk_stocks   CHAR(10) PRIMARY KEY,
+    dated       DATE,
     opening     FLOAT,
     high        FLOAT,
     low         FLOAT,
     closing     FLOAT,
     adj_close   FLOAT,
+    volume      BIGINT
 );
 
-CREATE TABLE IF NOT EXISTS stocks.core (
-    id          PRIMARY KEY,
-    packet      JSON,
-);
+-- CREATE TABLE IF NOT EXISTS stocks.core (
+--     pk_stocks   SERIAL PRIMARY KEY,
+--     packet      JSON,
+-- );
