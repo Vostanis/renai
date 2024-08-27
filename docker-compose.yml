@@ -27,6 +27,7 @@ services:
   pgadmin4:
     image: dpage/pgadmin4
     restart: always
+    container_name: renai-pgadmin
     environment:
       - PGADMIN_DEFAULT_EMAIL=${USER_AGENT}
       - PGADMIN_DEFAULT_PASSWORD=password
