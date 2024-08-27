@@ -8,9 +8,9 @@ pub mod prelude {
 
     pub use crate::doc;
 
-    pub fn build_client() -> anyhow::Result<Client> {
+    pub fn build_client(user_agent: &String) -> anyhow::Result<Client> {
         let client = reqwest::ClientBuilder::new()
-            .user_agent(&std::env::var("USER_AGENT")?)
+            .user_agent(user_agent)
             .build()?;
         Ok(client)
     }

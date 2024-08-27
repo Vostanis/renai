@@ -18,6 +18,11 @@ pub enum Commands {
     /// Shortcut to retrieve all data from endpoints, running every step.
     FetchAll,
 
+    /// Migrate schemas from the CouchDB filestore to the PostgreSQL server.
+    Migrate {
+        schema: Vec<MigrationArgs>,
+    },
+
     /// Clean up directories of the file store.
     Rm {
         directories: Vec<RmArgs>,
@@ -42,4 +47,10 @@ pub enum FetchArgs {
 pub enum RmArgs {
     /// Remove the buffer directory; used in holding bulk data.
     Buffer,
+}
+
+#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
+pub enum MigrationArgs {
+    /// The stock schema (Yahoo! Finance & SEC).
+    Stock,
 }

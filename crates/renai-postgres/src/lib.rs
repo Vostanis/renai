@@ -1,8 +1,7 @@
-pub mod schema;
-
 use anyhow::Result;
 use renai_client::prelude::Client as HttpClient;
 use renai_client::prelude::*;
+use renai_fs::schema::stocks::index::us::StockIndex;
 use sqlx::PgPool;
 
 /// An object used in migrating .json data, from a local CouchDB database, to
@@ -16,8 +15,7 @@ impl Migrator {
     /// Connect the Migrator to both the CouchDB and PostgreSQL databases.
     pub async fn connect() -> Result<Self> {
         Ok(Self {
-            http_client: build_client()?,
-            // http_client: HttpClient::connect(&std::env::var("COUCHDB_URL")),
+            http_client: build_client(&std::env::var("USER_AGENT")?)?,
             pg_pool: PgPool::connect(&std::env::var("POSTGRES_URL")?).await?,
         })
     }
@@ -33,11 +31,14 @@ impl Migrator {
     pub async fn migrate_stocks(&self) -> Result<()> {
         let base = std::env::var("COUCHDB_URL")?;
         let index_url = format!("{base}/stock/index");
-        let _index = self.http_client
+        let index: Vec<StockIndex>  = self.http_client
             .get(index_url)
             .send()
+            .await?
+            .json()
             .await?;
 
+        println!("{index:#?}");
         // async loop the index; pipeline tokio_postres queries
 
         // how do i have a table with any number of columns?

@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use renai_client::prelude::*;
+use renai_postgres::Migrator;
 
 mod cli;
 
@@ -47,15 +48,23 @@ async fn main() -> Result<()> {
             log::info!("Removing directories: {directories:#?}");
         }
 
+        // "> renai migrate [stocks]"
+        // migrate schemas from CouchDB to PostgreSQL
+        #[allow(unused_variables)]
+        cli::Commands::Migrate { schema } => {}
+
         // "> renai test"
         // used to test functions
         cli::Commands::Test => {
-            let db = renai_fs::db::Database::new(
-                "admin:password@localhost:5984"
-            )?;
-            db.fetch([
-                "stocks",
-            ].to_vec()).await?;
+            // let db = renai_fs::db::Database::new(
+            //     "admin:password@localhost:5984"
+            // )?;
+            // db.fetch([
+            //     "stocks",
+            // ].to_vec()).await?;
+
+            let migr = Migrator::connect().await?;
+            migr.migrate_stocks().await?;
         }
     }
 
@@ -66,7 +75,7 @@ async fn process_fetch_args(actions: &[cli::FetchArgs]) -> Result<()> {
     // download bulk SEC file to `./buffer`
     if actions.contains(&cli::FetchArgs::Bulk) {
         log::info!("Downloading SEC bulk file ...");
-        let client = build_client()?;
+        let client = build_client(&std::env::var("USER_AGENT")?)?;
         client
             .download_file(
                 "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip",

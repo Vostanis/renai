@@ -14,7 +14,7 @@ impl Database {
     pub fn new(url: &str) -> Result<Self> {
         Ok(Self {
             url: url.to_string(),
-            client: build_client()?,
+            client: build_client(&std::env::var("USER_AGENT")?)?,
         })
     }
 
