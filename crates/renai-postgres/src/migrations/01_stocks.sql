@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS stocks.index (
 
 CREATE TABLE IF NOT EXISTS stocks.price (
     pk_stocks   CHAR(10),
-    dated       DATE,
+    dated       VARCHAR,
     opening     FLOAT,
     high        FLOAT,
     low         FLOAT,

@@ -52,12 +52,12 @@ async fn main() -> Result<()> {
 
         // "> renai migrate [stocks]"
         // migrate schemas from CouchDB to PostgreSQL
-        cli::Commands::Migrate { schema } => {
+        cli::Commands::Migrate { schema, reset } => {
             use cli::MigrationArgs::*;
             let migr = Migrator::connect().await?;
 
             if schema.contains(&Stocks) {
-                migr.migrate_stocks().await?;
+                migr.migrate_stocks(reset).await?;
             }
         }
 
@@ -70,9 +70,6 @@ async fn main() -> Result<()> {
             // db.fetch([
             //     "stocks",
             // ].to_vec()).await?;
-
-            let migr = Migrator::connect().await?;
-            migr.migrate_stocks().await?;
         }
     }
 

@@ -21,6 +21,10 @@ pub enum Commands {
     /// Migrate schemas from the CouchDB filestore to the PostgreSQL server.
     Migrate {
         schema: Vec<MigrationArgs>,
+
+        /// Reset the PostgreSQL tables, recreating them from scratch.
+        #[arg(short, long)]
+        reset: bool,
     },
 
     /// Clean up directories of the file store.

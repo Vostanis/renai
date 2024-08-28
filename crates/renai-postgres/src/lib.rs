@@ -1,18 +1,18 @@
 use anyhow::Result;
+use colored::Colorize;
+use futures::future::join_all;
+use futures::stream::{self, StreamExt};
 use renai_client::client_ext::couchdb::Document;
 use renai_client::prelude::Client as HttpClient;
 use renai_client::prelude::*;
 use renai_fs::schema::stocks::exe::StockDataset;
 use renai_fs::schema::stocks::index::us::StockIndex;
-use std::sync::Arc;
 use tokio_postgres::NoTls;
-// use tokio_stream::StreamExt;
 
 /// An object used in migrating .json data, from a local CouchDB database, to
 /// a PostgreSQL database.
 pub struct Migrator {
     http_client: HttpClient,
-    // pg_pool: PgPool,
 }
 
 impl Migrator {
@@ -20,154 +20,81 @@ impl Migrator {
     pub async fn connect() -> Result<Self> {
         Ok(Self {
             http_client: build_client(&std::env::var("USER_AGENT")?)?,
-            // pg_pool: PgPool::connect(&std::env::var("POSTGRES_URL")?).await?,
         })
     }
 
     /// Run all, fully-built migrations available.
-    pub async fn migrate_all(&self) -> Result<()> {
-        self.migrate_stocks().await?;
+    pub async fn migrate_all(&self, reset: &bool) -> Result<()> {
+        self.migrate_stocks(reset).await?;
         Ok(())
     }
 
     /// Migrate the stock schema.
-    pub async fn migrate_stocks(&self) -> Result<()> {
+    pub async fn migrate_stocks(&self, reset: &bool) -> Result<()> {
         // fetch the index
         let base = std::env::var("COUCHDB_URL")?;
         let index_url = format!("{base}/stock/index");
         let index: Document<Vec<StockIndex>> =
             self.http_client.get(index_url).send().await?.json().await?;
 
-        // async loop the index, and insert each row for each stock
-        // let mut stream = tokio_stream::iter(index.data);
-        // while let Some(company) = stream.next().await {
-        //     // fetch the individual stock dataset
-        //     let base = base.clone();
-        //     let url = format!("{}/stock/{}", &base, &company.ticker);
-        //     let response = self.http_client
-        //         .get(url)
-        //         .send()
-        //         .await?;
+        // if cli provides "renai migrate stocks -r / --reset"
+        if reset == &true {
+            // init postgres connection
+            let (client, conn) =
+                tokio_postgres::connect(&std::env::var("POSTGRES_URL").unwrap(), NoTls)
+                    .await
+                    .unwrap();
 
-        //     match response.json::<Document<StockDataset>>().await {
-        //         Ok(stock) => {
-        //             // init postgres connection
-        //             let (client, conn) =
-        //                 tokio_postgres::connect(&std::env::var("POSTGRES_URL")?, NoTls).await?;
+            // handle connection
+            tokio::spawn(async move {
+                if let Err(e) = conn.await {
+                    eprintln!("connection error: {}", e);
+                }
+            });
 
-        //             // handle connection
-        //             tokio::spawn(async move {
-        //                 if let Err(e) = conn.await {
-        //                     eprintln!("connection error: {}", e);
-        //                 }
-        //             });
+            // pipeline initalising queries
+            let queries = join_all([
+                client.prepare("DROP SCHEMA IF EXISTS stock"),
+                client.prepare("CREATE SCHEMA IF NOT EXISTS stock"),
+                client.prepare("DROP TABLE IF EXISTS stock.index"),
+                client.prepare("DROP TABLE IF EXISTS stock.price"),
+                // client.prepare("DROP TABLE IF EXISTS stock.metric"),
+                client.prepare(
+                    "
+                CREATE TABLE IF NOT EXISTS stock.index (
+                    pk_stocks   CHAR(10) PRIMARY KEY,
+                    ticker      VARCHAR(8),
+                    title       VARCHAR(255)
+                )",
+                ),
+                client.prepare(
+                    "
+                CREATE TABLE IF NOT EXISTS stock.price (
+                    pk_stocks   CHAR(10),
+                    dated       VARCHAR,
+                    opening     FLOAT,
+                    high        FLOAT,
+                    low         FLOAT,
+                    closing     FLOAT,
+                    adj_close   FLOAT,
+                    volume      INT
+                )",
+                ),
+                // client.prepare("CREATE TABLE IF NOT EXISTS stock.metric ()"),
+            ])
+            .await;
 
-        //             // insert the index
-        //             let _index_insert_query = &client.query("
-        //                 INSERT INTO stocks.index (pk_stocks, ticker, title)
-        //                 VALUES ($1, $2, $3)",
-        //                 &[
-        //                     &company.cik_str,
-        //                     &company.ticker,
-        //                     &company.title
-        //                 ]
-        //             ).await.map_err(|e| log::error!("{e}"));
-        //             println!("[{}] {} inserted into stocks.index", &company.ticker, &company.title);
+            // futures::future::join_all(queries).await;
 
-        //             // insert each price datacell
-        //             let mut stream = tokio_stream::iter(stock.data.price);
-        //             while let Some(cell) = stream.next().await {
-        //                 let _price_query = &client.query("
-        //                     INSERT INTO stocks.price (pk_stocks, opening, high, low, closing, adj_close, volume)
-        //                     VALUES ($1, $2, $3, $4, $5, $6, $7)",
-        //                     &[
-        //                         &company.cik_str,
-        //                         // &cell.dated,
-        //                         &cell.open,
-        //                         &cell.high,
-        //                         &cell.low,
-        //                         &cell.close,
-        //                         &cell.adj_close,
-        //                         &cell.volume
-        //                     ]
-        //                 ).await?;
-        //             }
-        //         },
+            for query in queries {
+                let _execution = client.execute(&query?, &[]).await;
+            }
 
-        //         Err(e) => log::error!("[{}] {} | {e}", &company.ticker, &company.title)
+            log::info!("PostgreSQL tables for stocks initialised");
+        }
 
-        //     };
-        //     println!("[{}] {} inserted to stocks.price", &company.ticker, &company.title);
-        // }
-
-        // async loop the index, and insert each row for each stock
-        // let mut stream = stream::iter(index.data);
-        // stream.map(|company|
-        //     let base = base.clone();
-        //     async move {
-        //         // fetch the individual stock dataset
-        //         let base = base.clone();
-        //         let url = format!("{}/stock/{}", &base, &company.ticker);
-        //         let response = self.http_client
-        //             .get(url)
-        //             .send()
-        //             .await?;
-
-        //         match response.json::<Document<StockDataset>>().await {
-        //             Ok(stock) => {
-        //                 // init postgres connection
-        //                 let (client, conn) =
-        //                     tokio_postgres::connect(&std::env::var("POSTGRES_URL")?, NoTls).await?;
-
-        //                 // handle connection
-        //                 tokio::spawn(async move {
-        //                     if let Err(e) = conn.await {
-        //                         eprintln!("connection error: {}", e);
-        //                     }
-        //                 });
-
-        //                 // insert the index
-        //                 let _index_insert_query = &client.query("
-        //                     INSERT INTO stocks.index (pk_stocks, ticker, title)
-        //                     VALUES ($1, $2, $3)",
-        //                     &[
-        //                         &company.cik_str,
-        //                         &company.ticker,
-        //                         &company.title
-        //                     ]
-        //                 ).await.map_err(|e| log::error!("{e}"));
-        //                 println!("[{}] {} inserted into stocks.index", &company.ticker, &company.title);
-
-        //                 // insert each price datacell
-        //                 let mut stream = stream::iter(stock.data.price);
-        //                 while let Some(cell) = stream.next().await {
-        //                     let _price_query = &client.query("
-        //                         INSERT INTO stocks.price (pk_stocks, opening, high, low, closing, adj_close, volume)
-        //                         VALUES ($1, $2, $3, $4, $5, $6, $7)",
-        //                         &[
-        //                             &company.cik_str,
-        //                             // &cell.dated,
-        //                             &cell.open,
-        //                             &cell.high,
-        //                             &cell.low,
-        //                             &cell.close,
-        //                             &cell.adj_close,
-        //                             &cell.volume
-        //                         ]
-        //                     ).await?;
-        //                 }
-        //             },
-        //             Err(e) => log::error!("[{}] {} | {e}", &company.ticker, &company.title)
-        //         };
-        //         println!("[{}] {} inserted to stocks.price", &company.ticker, &company.title);
-
-        //         Ok::<(), anyhow::Error>(())
-        //     }
-        // ).buffer_unordered(12);
-
-        use futures::stream::{self, StreamExt};
         stream::iter(index.data)
-            .for_each_concurrent(12, |company| {
+            .for_each_concurrent(num_cpus::get(), |company| {
                 let http_client = &self.http_client;
                 let base: &String = &std::env::var("COUCHDB_URL")
                     .expect("failed to find environment variable: POSTGRES_URL");
@@ -178,7 +105,7 @@ impl Migrator {
                         .expect("failed to GET {url}");
 
                     match response.json::<Document<StockDataset>>().await {
-                        Ok(_) => {
+                        Ok(stock) => {
                             // init postgres connection
                             let (client, conn) =
                                 tokio_postgres::connect(&std::env::var("POSTGRES_URL").unwrap(), NoTls)
@@ -192,41 +119,53 @@ impl Migrator {
                                 }
                             });
 
+                            let index_query = client.prepare("
+                                INSERT INTO stock.index (pk_stocks, ticker, title)
+                                VALUES ($1, $2, $3)
+                            ")
+                            .await
+                            .expect("failed to unwrap index query");
+
+                            let price_query = client.prepare("
+                                INSERT INTO stock.price (pk_stocks, dated, opening, high, low, closing, adj_close, volume)
+                                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                            ")
+                            .await
+                            .expect("failed to unwrap price query");
+
                             // insert the index
                             let _index_insert_query = &client
                                 .query(
-                                    "
-                                INSERT INTO stocks.index (pk_stocks, ticker, title)
-                                VALUES ($1, $2, $3)",
+                                    &index_query,
                                     &[&company.cik_str, &company.ticker, &company.title],
                                 )
                                 .await
                                 .map_err(|e| log::error!("{e}"));
-                            println!(
-                                "[{}] {} inserted into stocks.index",
-                                &company.ticker, &company.title
-                            );
 
                             // insert each price datacell
-                            let mut stream = stream::iter(stock.data.price)
-                                .map()
-                                let _price_query = &client.query("
-                                    INSERT INTO stocks.price (pk_stocks, opening, high, low, closing, adj_close, volume)
-                                    VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                            for row in stock.data.price {
+                                let _price_query = &client.query(
+                                    &price_query,
                                     &[
                                         &company.cik_str,
-                                        // &cell.dated,
-                                        &cell.open,
-                                        &cell.high,
-                                        &cell.low,
-                                        &cell.close,
-                                        &cell.adj_close,
-                                        &cell.volume
+                                        &row.dated,
+                                        &row.open,
+                                        &row.high,
+                                        &row.low,
+                                        &row.close,
+                                        &row.adj_close,
+                                        &row.volume
                                     ]
-                                ).await?;
+                                ).await.unwrap();
                             }
+
+                            // price inserts complete
+                            log::info!(
+                                "[{}] {} inserted to renai-pg",
+                                &company.ticker, &company.title
+                            );
                         },
-                        Err(e) => log::error!("[{}] {} | {e}", &company.ticker, &company.title),
+                        Err(e) => log::error!("[{}] {} | {}", &company.ticker, &company.title, e.to_string().red()),
                     }
                 }
             })
