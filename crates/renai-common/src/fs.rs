@@ -4,7 +4,7 @@ use std::sync::Arc;
 use zip::ZipArchive;
 
 /// Reads a `.json` file from `path`.
-/// 
+///
 /// ```rust
 /// let ouput: DesiredType = renai_client::read_json(path).await?;
 /// ```

@@ -23,9 +23,9 @@ impl Database {
 
     /// Find all the `fetch.rs` scripts, nested within the `schema/{dataset}` directory,
     /// and run them.
-    /// 
+    ///
     /// Each `fetch.rs` script will then handle ETL processes for each dataset.
-    /// 
+    ///
     /// ```rust
     /// let db = Database::new(".env");
     /// db.fetch([
@@ -40,7 +40,7 @@ impl Database {
         for arg in args {
             match arg {
                 "stocks" => schema::stocks::exe::exe(&self.client).await?,
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         }
 

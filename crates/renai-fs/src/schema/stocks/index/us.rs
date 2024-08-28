@@ -1,7 +1,7 @@
+use super::de_cik;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap as Map;
 use std::env;
-use super::de_cik;
 
 pub async fn fetch(client: &reqwest::Client) -> anyhow::Result<Vec<StockIndex>> {
     let user_agent =

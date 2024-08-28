@@ -3,13 +3,13 @@ use serde::{Deserialize, Deserializer};
 
 /// Used within the SEC datasets; each company is given a CIK code (and ticker, and title),
 /// intended to be a 10-character string, as below:
-/// 
+///
 ///     0000004321 - NVDA - Nvidia
-/// 
+///
 /// But, many encounter the common issue, as below:
-/// 
+///
 ///     4321 - NVDA - Nvidia
-/// 
+///
 /// `de_cik` is designed to handle both.
 pub fn de_cik<'de, D>(deserializer: D) -> Result<String, D::Error>
 where

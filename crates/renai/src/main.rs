@@ -42,7 +42,9 @@ async fn main() -> Result<()> {
         // "> renai rm [buffer]"
         // remove directories
         cli::Commands::Rm { directories } => {
-            if directories.contains(&cli::RmArgs::Buffer) {
+            use cli::RmArgs::*;
+
+            if directories.contains(&Buffer) {
                 tokio::fs::remove_dir_all("./buffer").await?;
             }
             log::info!("Removing directories: {directories:#?}");
@@ -50,8 +52,14 @@ async fn main() -> Result<()> {
 
         // "> renai migrate [stocks]"
         // migrate schemas from CouchDB to PostgreSQL
-        #[allow(unused_variables)]
-        cli::Commands::Migrate { schema } => {}
+        cli::Commands::Migrate { schema } => {
+            use cli::MigrationArgs::*;
+            let migr = Migrator::connect().await?;
+
+            if schema.contains(&Stocks) {
+                migr.migrate_stocks().await?;
+            }
+        }
 
         // "> renai test"
         // used to test functions
@@ -88,10 +96,7 @@ async fn process_fetch_args(actions: &[cli::FetchArgs]) -> Result<()> {
     // unzip bulk SEC file
     if actions.contains(&cli::FetchArgs::Unzip) {
         log::info!("Unzipping SEC bulk file ...");
-        renai_common::fs::unzip(
-            "./buffer/companyfacts.zip",
-            "./buffer/companyfacts"
-        ).await?;
+        renai_common::fs::unzip("./buffer/companyfacts.zip", "./buffer/companyfacts").await?;
         log::info!("SEC bulk file unzipped");
     }
 

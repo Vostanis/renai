@@ -2163,11 +2163,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "futures",
+ "log",
  "renai-client",
  "renai-fs",
  "tokio",
  "tokio-postgres",
  "tokio-stream",
+ "tokio-util",
 ]
 
 [[package]]

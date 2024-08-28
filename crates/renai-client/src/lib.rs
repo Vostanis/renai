@@ -1,10 +1,10 @@
 pub mod client_ext;
 
 pub mod prelude {
-    #[allow(unused_imports)]
-    pub use crate::client_ext::Client;
     pub use crate::client_ext::couchdb::ClientCouchExt as CouchDB;
     pub use crate::client_ext::util::ClientUtilExt as Util;
+    #[allow(unused_imports)]
+    pub use crate::client_ext::Client;
 
     pub use crate::doc;
 

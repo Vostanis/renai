@@ -13,11 +13,7 @@ use tokio::{
 const CHUNK_SIZE: u64 = 100 * 1024 * 1024; // 100 MB
 
 pub trait ClientUtilExt {
-    fn download_file(
-        &self, 
-        url: &str, 
-        path: &str
-    ) -> impl Future<Output = Result<()>> + Send;
+    fn download_file(&self, url: &str, path: &str) -> impl Future<Output = Result<()>> + Send;
 
     fn download_chunk(
         &self,
@@ -27,7 +23,6 @@ pub trait ClientUtilExt {
         output_file: &mut File,
     ) -> impl Future<Output = Result<()>> + Send;
 }
-
 
 impl ClientUtilExt for Client {
     /// GET request a file from `url` and write it to `path`, parallelising

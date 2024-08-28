@@ -48,13 +48,8 @@ pub trait ClientCouchExt {
         T: serde::Serialize + serde::de::DeserializeOwned + Sync;
 }
 
-impl ClientCouchExt for Client { 
-    async fn insert_doc<T>(
-        &self, 
-        data: &T, 
-        conn: &str, 
-        doc_id: &str
-    ) -> Result<()>
+impl ClientCouchExt for Client {
+    async fn insert_doc<T>(&self, data: &T, conn: &str, doc_id: &str) -> Result<()>
     where
         T: serde::Serialize + serde::de::DeserializeOwned + Sync,
     {

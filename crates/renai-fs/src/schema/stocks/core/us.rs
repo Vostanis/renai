@@ -1,12 +1,11 @@
 use super::de_cik;
 use anyhow::Result;
+use rayon::prelude::*;
+use serde::Deserializer;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use rayon::prelude::*;
-use serde::Deserializer;
 use std::sync::Mutex;
-
 
 pub async fn fetch(cik_str: &str) -> Result<Vec<CoreCell>> {
     let path = format!("./buffer/companyfacts/CIK{}.json", cik_str);

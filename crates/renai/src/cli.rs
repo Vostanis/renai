@@ -52,5 +52,5 @@ pub enum RmArgs {
 #[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum MigrationArgs {
     /// The stock schema (Yahoo! Finance & SEC).
-    Stock,
+    Stocks,
 }
