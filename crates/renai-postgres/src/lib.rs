@@ -58,11 +58,11 @@ impl Migrator {
                 client.prepare("CREATE SCHEMA IF NOT EXISTS stock"),
                 client.prepare("DROP TABLE IF EXISTS stock.index"),
                 client.prepare("DROP TABLE IF EXISTS stock.price"),
-                // client.prepare("DROP TABLE IF EXISTS stock.metric"),
+                client.prepare("DROP TABLE IF EXISTS stock.metrics"),
                 client.prepare(
                     "
                 CREATE TABLE IF NOT EXISTS stock.index (
-                    pk_stocks   CHAR(10) PRIMARY KEY,
+                    stock_id    CHAR(10) PRIMARY KEY,
                     ticker      VARCHAR(8),
                     title       VARCHAR(255)
                 )",
@@ -70,7 +70,7 @@ impl Migrator {
                 client.prepare(
                     "
                 CREATE TABLE IF NOT EXISTS stock.price (
-                    pk_stocks   CHAR(10),
+                    stock_id    CHAR(10),
                     dated       VARCHAR,
                     opening     FLOAT,
                     high        FLOAT,
@@ -80,11 +80,17 @@ impl Migrator {
                     volume      INT
                 )",
                 ),
-                // client.prepare("CREATE TABLE IF NOT EXISTS stock.metric ()"),
+                client.prepare(
+                    "
+                CREATE TABLE IF NOT EXISTS stock.metrics (
+                    stock_id    CHAR(10),
+                    dated       VARCHAR,
+                    metric      VARCHAR,
+                    val         FLOAT
+                )",
+                ),
             ])
             .await;
-
-            // futures::future::join_all(queries).await;
 
             for query in queries {
                 let _execution = client.execute(&query?, &[]).await;
@@ -120,21 +126,28 @@ impl Migrator {
                             });
 
                             let index_query = client.prepare("
-                                INSERT INTO stock.index (pk_stocks, ticker, title)
+                                INSERT INTO stock.index (stock_id, ticker, title)
                                 VALUES ($1, $2, $3)
                             ")
                             .await
                             .expect("failed to unwrap index query");
 
                             let price_query = client.prepare("
-                                INSERT INTO stock.price (pk_stocks, dated, opening, high, low, closing, adj_close, volume)
+                                INSERT INTO stock.price (stock_id, dated, opening, high, low, closing, adj_close, volume)
                                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                             ")
                             .await
                             .expect("failed to unwrap price query");
 
+                            let metrics_query = client.prepare("
+                                INSERT INTO stock.metrics (stock_id, dated, metric, val)
+                                VALUES ($1, $2, $3, $4)
+                            ")
+                            .await
+                            .expect("failed to unwrap metric query");
+
                             // insert the index
-                            let _index_insert_query = &client
+                            let _execute_index_query = &client
                                 .query(
                                     &index_query,
                                     &[&company.cik_str, &company.ticker, &company.title],
@@ -144,7 +157,7 @@ impl Migrator {
 
                             // insert each price datacell
                             for row in stock.data.price {
-                                let _price_query = &client.query(
+                                let _execute_price_query = &client.query(
                                     &price_query,
                                     &[
                                         &company.cik_str,
@@ -157,6 +170,18 @@ impl Migrator {
                                         &row.volume
                                     ]
                                 ).await.unwrap();
+                            }
+
+                            // insert each metric datacell
+                            for row in stock.data.core {
+                                // unpack `metrics: BTreeMap<String, f64>`
+                                for record in row.metrics {
+                                    let _execute_metric_query = &client
+                                    .query(
+                                        &metrics_query,
+                                        &[&company.cik_str, &row.dated, &record.0, &record.1]
+                                    ).await.unwrap();
+                                }
                             }
 
                             // price inserts complete
