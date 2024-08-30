@@ -15,8 +15,14 @@ pub enum Commands {
         actions: Vec<FetchArgs>,
     },
 
-    /// Shortcut to retrieve all data from endpoints, running every step.
-    FetchAll,
+    /// Migrate schemas from the CouchDB filestore to the PostgreSQL server.
+    Migrate {
+        schema: Vec<MigrationArgs>,
+
+        /// Reset the PostgreSQL tables, recreating them from scratch.
+        #[arg(short, long)]
+        reset: bool,
+    },
 
     /// Clean up directories of the file store.
     Rm {
@@ -28,6 +34,9 @@ pub enum Commands {
 
 #[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum FetchArgs {
+    /// Run all processes
+    All,
+
     /// Get the bulk zip data file.
     Bulk,
 
@@ -42,4 +51,10 @@ pub enum FetchArgs {
 pub enum RmArgs {
     /// Remove the buffer directory; used in holding bulk data.
     Buffer,
+}
+
+#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
+pub enum MigrationArgs {
+    /// The stock schema (Yahoo! Finance & SEC).
+    Stocks,
 }

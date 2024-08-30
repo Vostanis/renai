@@ -1,16 +1,21 @@
+use super::de_timestamps_to_naive_date;
+use super::date_id;
 use anyhow::Result;
-use chrono::DateTime;
 use reqwest::Client;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
-pub async fn extran(
+const INTERVAL: &str = "1d";
+const RANGE: &str = "3y";
+
+pub async fn fetch(
     client: &Client,
-    price_url: String,
+    // price_url: String,
     ticker: &String,
     title: &String,
 ) -> Result<Vec<PriceCell>> {
     let price = {
-        let price_response: PriceHistory = client.get(price_url).send().await?.json().await?;
+        let url = url(&ticker).await;
+        let price_response: PriceHistory = client.get(url).send().await?.json().await?;
 
         match price_response.chart.result {
             Some(data) => {
@@ -29,6 +34,7 @@ pub async fn extran(
                     .zip(dates.iter())
                     .map(
                         |((((((open, high), low), close), volume), adj_close), date)| PriceCell {
+                            date_id: date_id(date.clone()).expect("failed to convert date -> date_id"),
                             dated: date.clone(),
                             open: *open,
                             high: *high,
@@ -50,8 +56,17 @@ pub async fn extran(
     Ok(price)
 }
 
+async fn url(ticker: &str) -> String {
+    format!(
+        "https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?symbol={ticker}&interval={}&range={}&events=div|split|capitalGains",
+        INTERVAL,
+        RANGE
+    )
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PriceCell {
+    pub date_id: u32,
     pub dated: String,
     pub open: f64,
     pub high: f64,
@@ -74,26 +89,9 @@ pub struct PriceResponse {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct PriceCategories {
-    #[serde(rename = "timestamp", deserialize_with = "de_timestamps")]
+    #[serde(rename = "timestamp", deserialize_with = "de_timestamps_to_naive_date")]
     pub dates: Vec<String>,
     pub indicators: Indicators,
-}
-
-pub fn de_timestamps<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let timestamps: Vec<i64> = Deserialize::deserialize(deserializer)?;
-    let dates = timestamps
-        .into_iter()
-        .map(|timestamp| {
-            DateTime::from_timestamp(timestamp, 0)
-                .expect("Expected Vector of Timestamp integers")
-                .date_naive()
-                .to_string()
-        })
-        .collect();
-    Ok(dates)
 }
 
 #[derive(Deserialize, Serialize, Debug)]
