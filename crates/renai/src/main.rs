@@ -22,21 +22,21 @@ async fn main() -> Result<()> {
     // cli framework:
     // "> renai <COMMAND>"
     match &cli.command {
-        // "> renai fetch-all"
-        // run all steps of data collection process (SHORTCUT)
-        cli::Commands::FetchAll => {
-            let all_actions = vec![
-                cli::FetchArgs::Bulk,
-                cli::FetchArgs::Unzip,
-                cli::FetchArgs::Collection,
-            ];
-            process_fetch_args(&all_actions).await?;
-        }
-
-        // "> renai fetch [bulk unzip collection]"
+        // "> renai fetch [all bulk unzip collection]"
         // run specified steps of data collection process
         cli::Commands::Fetch { actions } => {
-            process_fetch_args(actions).await?;
+            use cli::FetchArgs::*;
+
+            if actions.contains(&All) {
+                let all_actions = vec![
+                    cli::FetchArgs::Bulk,
+                    cli::FetchArgs::Unzip,
+                    cli::FetchArgs::Collection,
+                ];
+                process_fetch_args(&all_actions).await?;
+            } else {
+                process_fetch_args(&actions).await?;
+            }
         }
 
         // "> renai rm [buffer]"
@@ -47,6 +47,7 @@ async fn main() -> Result<()> {
             if directories.contains(&Buffer) {
                 tokio::fs::remove_dir_all("./buffer").await?;
             }
+
             log::info!("Removing directories: {directories:#?}");
         }
 
@@ -54,10 +55,11 @@ async fn main() -> Result<()> {
         // migrate schemas from CouchDB to PostgreSQL
         cli::Commands::Migrate { schema, reset } => {
             use cli::MigrationArgs::*;
-            let migr = Migrator::connect().await?;
+
+            let migrator = Migrator::connect().await?;
 
             if schema.contains(&Stocks) {
-                migr.migrate_stocks(reset).await?;
+                migrator.migrate_stocks(reset).await?;
             }
         }
 
@@ -77,8 +79,10 @@ async fn main() -> Result<()> {
 }
 
 async fn process_fetch_args(actions: &[cli::FetchArgs]) -> Result<()> {
+    use cli::FetchArgs::*;
+
     // download bulk SEC file to `./buffer`
-    if actions.contains(&cli::FetchArgs::Bulk) {
+    if actions.contains(&Bulk) {
         log::info!("Downloading SEC bulk file ...");
         let client = build_client(&std::env::var("USER_AGENT")?)?;
         client
@@ -91,17 +95,23 @@ async fn process_fetch_args(actions: &[cli::FetchArgs]) -> Result<()> {
     }
 
     // unzip bulk SEC file
-    if actions.contains(&cli::FetchArgs::Unzip) {
+    if actions.contains(&Unzip) {
         log::info!("Unzipping SEC bulk file ...");
         renai_common::fs::unzip("./buffer/companyfacts.zip", "./buffer/companyfacts").await?;
         log::info!("SEC bulk file unzipped");
     }
 
     // collect price & core data, and upload it
-    // if actions.contains(&cli::FetchArgs::Collection) {
-    //     let client = build_client()?;
-    //     client.mass_collection().await?;
-    // }
+    if actions.contains(&Collection) {
+        let db = renai_fs::db::Database::new(
+            &std::env::var("COUCHDB_URL")?
+        )?;
+        db.fetch([
+            "stocks",
+        ].to_vec()).await?;
+        // let client = build_client()?;
+        // client.mass_collection().await?;
+    }
 
     Ok(())
 }

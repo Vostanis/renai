@@ -15,9 +15,6 @@ pub enum Commands {
         actions: Vec<FetchArgs>,
     },
 
-    /// Shortcut to retrieve all data from endpoints, running every step.
-    FetchAll,
-
     /// Migrate schemas from the CouchDB filestore to the PostgreSQL server.
     Migrate {
         schema: Vec<MigrationArgs>,
@@ -37,6 +34,9 @@ pub enum Commands {
 
 #[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum FetchArgs {
+    /// Run all processes
+    All,
+
     /// Get the bulk zip data file.
     Bulk,
 

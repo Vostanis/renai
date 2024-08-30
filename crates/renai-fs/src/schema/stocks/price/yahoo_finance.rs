@@ -1,4 +1,5 @@
 use super::de_timestamps_to_naive_date;
+use super::date_id;
 use anyhow::Result;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -33,6 +34,7 @@ pub async fn fetch(
                     .zip(dates.iter())
                     .map(
                         |((((((open, high), low), close), volume), adj_close), date)| PriceCell {
+                            date_id: date_id(date.clone()).expect("failed to convert date -> date_id"),
                             dated: date.clone(),
                             open: *open,
                             high: *high,
@@ -64,6 +66,7 @@ async fn url(ticker: &str) -> String {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PriceCell {
+    pub date_id: u32,
     pub dated: String,
     pub open: f64,
     pub high: f64,

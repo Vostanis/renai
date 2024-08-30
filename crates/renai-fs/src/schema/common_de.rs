@@ -56,3 +56,15 @@ where
         .collect();
     Ok(dates)
 }
+
+/// Transform date String (= "2021-01-01") to u32 (= 20210101).
+pub fn date_id(date_str: String) -> anyhow::Result<u32> {
+    let parts: Vec<&str> = date_str.split('-').collect();
+    if parts.len() == 3 {
+        let yyyymmdd = format!("{}{}{}", parts[0], parts[1], parts[2]);
+        Ok(yyyymmdd.parse::<u32>()?)
+    } else {
+        log::error!("Failed to parse date: {parts:?} did not conform to expected String format: YYYY-MM-DD");
+        Err(anyhow::anyhow!("Failed to parse date: {parts:?} did not conform to expected String format: YYYY-MM-DD"))
+    }
+}

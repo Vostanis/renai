@@ -1,4 +1,4 @@
-use super::{core, index, price::yahoo_finance};
+use super::{metrics, index, price::yahoo_finance};
 use anyhow::Result;
 use futures::StreamExt;
 use renai_client::prelude::*;
@@ -22,7 +22,7 @@ pub async fn exe(client: &Client) -> Result<()> {
             // let pb = pb.clone();
             async move {
                 // fetch fundamentals
-                let core = match core::us::fetch(&company.cik_str).await {
+                let metrics = match metrics::us::fetch(&company.cik_str).await {
                     Ok(data) => data,
                     Err(e) => {
                         log::error!("Failed to fetch fundamentals: {:#?}", e);
@@ -41,7 +41,7 @@ pub async fn exe(client: &Client) -> Result<()> {
                     };
 
                 // build doc
-                let company_data = doc!(company.ticker.clone(), StockDataset { core, price });
+                let company_data = doc!(company.ticker.clone(), StockDataset { metrics, price });
 
                 // upload doc
                 client
@@ -73,7 +73,7 @@ pub async fn exe(client: &Client) -> Result<()> {
 /// Final output data collection for a single stock (e.g., Apple, Nvidia, Meta, etc.).
 #[derive(Deserialize, Serialize, Debug)]
 pub struct StockDataset {
-    pub core: CoreSet,
+    pub metrics: MetricsSet,
     pub price: PriceSet,
     // todo!
     // ------------------------------
@@ -98,7 +98,7 @@ pub struct StockDataset {
 ///      // ...
 /// ]
 /// ```
-pub type CoreSet = Vec<super::core::us::CoreCell>;
+pub type MetricsSet = Vec<metrics::us::MetricsCell>;
 
 /// Price data collection (i.e., Open, High, Low, Close, Adj. Close).
 /// ```rust
@@ -116,4 +116,4 @@ pub type CoreSet = Vec<super::core::us::CoreCell>;
 ///      // ...
 /// ]
 /// ```
-pub type PriceSet = Vec<super::price::yahoo_finance::PriceCell>;
+pub type PriceSet = Vec<yahoo_finance::PriceCell>;

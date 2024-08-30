@@ -1,6 +1,6 @@
-/// Core metric data for companies; includes:
+/// Fundamental metric data for companies; includes:
 /// 1. US   [*source*]: "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip"
-pub mod core;
+pub mod metrics;
 
 /// Output for Stocks.
 pub mod exe;

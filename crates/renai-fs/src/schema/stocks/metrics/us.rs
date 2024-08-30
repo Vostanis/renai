@@ -1,4 +1,5 @@
 use super::de_cik;
+use super::date_id;
 use anyhow::Result;
 use rayon::prelude::*;
 use serde::Deserializer;
@@ -7,7 +8,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-pub async fn fetch(cik_str: &str) -> Result<Vec<CoreCell>> {
+pub async fn fetch(cik_str: &str) -> Result<Vec<MetricsCell>> {
     let path = format!("./buffer/companyfacts/CIK{}.json", cik_str);
     let out: SecCompany = renai_common::fs::read_json(&path).await?;
     Ok(out.facts)
@@ -20,17 +21,18 @@ pub struct SecCompany {
     #[serde(rename = "entityName")]
     pub entity_name: String,
     #[serde(deserialize_with = "de_facts")]
-    pub facts: Vec<CoreCell>,
+    pub facts: Vec<MetricsCell>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct CoreCell {
+pub struct MetricsCell {
+    pub date_id: u32,
     pub dated: String,
     #[serde(flatten)]
     pub metrics: BTreeMap<String, f64>,
 }
 
-fn de_facts<'de, D>(deserializer: D) -> Result<Vec<CoreCell>, D::Error>
+fn de_facts<'de, D>(deserializer: D) -> Result<Vec<MetricsCell>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -79,9 +81,10 @@ where
         .into_inner()
         .map_err(|_| serde::de::Error::custom("Failed to get data"))?;
 
-    let set: Vec<CoreCell> = unlocked_btree
+    let set: Vec<MetricsCell> = unlocked_btree
         .into_iter()
-        .map(|(date, metrics)| CoreCell {
+        .map(|(date, metrics)| MetricsCell {
+            date_id: date_id(date.clone()).expect("failed to transform date -> date-id"),
             dated: date,
             metrics,
         })

@@ -173,7 +173,7 @@ impl Migrator {
                             }
 
                             // insert each metric datacell
-                            for row in stock.data.core {
+                            for row in stock.data.metrics {
                                 // unpack `metrics: BTreeMap<String, f64>`
                                 for record in row.metrics {
                                     let _execute_metric_query = &client
