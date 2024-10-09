@@ -3,6 +3,7 @@ members = [ "api/renai-rs", "crates/*" ]
 resolver = "2"
 
 [workspace.package]
+name = "renai"
 version = "0.1.0"
 authors = ["Vostanis"]
 rust-version = "1.77"

@@ -418,6 +418,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7144d30dcf0fafbce74250a3963025d8d52177934239851c917d29f1df280c2"
 
 [[package]]
+name = "convert_case"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "cookie"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1370,6 +1379,49 @@ dependencies = [
 ]
 
 [[package]]
+name = "kvapi"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44ca2ee3b68ad54cce300737edd244b353f2674ea5854e9c2a7ff21a72e78342"
+dependencies = [
+ "anyhow",
+ "dotenv",
+ "kvapi-macros",
+ "kvapi-macros-internals",
+ "quote",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "kvapi-macros"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b8f26b2e83041b08ce297a9e238865fc7f2c1b5f324e164303ad87fed47c60b"
+dependencies = [
+ "anyhow",
+ "convert_case",
+ "kvapi-macros-internals",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "kvapi-macros-internals"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e4f54610ea47c43b0f8783211de0cbf908ed47a9567f61de427dbbf18eb5570"
+dependencies = [
+ "convert_case",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2172,12 +2224,18 @@ name = "renai-postgres"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "colored",
+ "dotenv",
  "futures",
+ "kvapi",
  "log",
  "num_cpus",
  "renai-client",
  "renai-fs",
+ "reqwest",
+ "serde",
+ "serde_json",
  "tokio",
  "tokio-postgres",
 ]
@@ -3137,6 +3195,12 @@ name = "unicode-properties"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "52ea75f83c0137a9b98608359a5f1af8144876eb67bcb1ce837368e906a9f524"
+
+[[package]]
+name = "unicode-segmentation"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
 
 [[package]]
 name = "unicode-width"

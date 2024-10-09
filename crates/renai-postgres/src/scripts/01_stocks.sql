@@ -8,8 +8,7 @@ CREATE TABLE IF NOT EXISTS stock.index (
 
 CREATE TABLE IF NOT EXISTS stock.price (
     stock_id    CHAR(10),
-    date_id     CHAR(8),
-    dated       VARCHAR, -- needs to be DATE; use chrono::DateTime
+    ts   	TIMESTAMP,
     opening     FLOAT,
     high        FLOAT,
     low         FLOAT,
@@ -23,15 +22,7 @@ CREATE TABLE IF NOT EXISTS stock.price (
 -- NVDA     | 20220101 | 2022-01-01 | Revenues | 249812378.0
 CREATE TABLE IF NOT EXISTS stock.metrics (
     stock_id    CHAR(10),
-    date_id     CHAR(8),
-    dated       VARCHAR, -- needs to be DATE; use chrono::DateTime
+    ts       	TIMESTAMP,
     metric      VARCHAR,
     val         FLOAT
-);
-
--- Essentially a hash table of metric names, including frequency of usage
-CREATE TABLE IF NOT EXISTS stock.metric_ids (
-    metric_id   INT,
-    metric_name VARCHAR,    -- e.g., "Revenues", "DilutedEPS", etc.
-    freq        INT         -- how often the metric name is used (across all stocks)
 );
