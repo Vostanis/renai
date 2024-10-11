@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS stock.index (
 -- stock_id   | date_id  | dated      | metric   | val
 --------------------------------------------------------------
 -- 0123456789 | 20220101 | 2022-01-01 | Revenues | 249812378.0
-CREATE TABLE IF NOT EXISTS stock.price (
+CREATE TABLE IF NOT EXISTS stock.prices (
     stock_id    CHAR(10),
-    ts   	TIMESTAMP,
+    dated   	DATE,
     opening     FLOAT,
     high        FLOAT,
     low         FLOAT,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS stock.price (
 -- 0123456789 | 20220101 | 2022-01-01 | Revenues | 249812378.0
 CREATE TABLE IF NOT EXISTS stock.metrics (
     stock_id    CHAR(10),
-    ts       	TIMESTAMP,
+    dated       DATE,
     metric      VARCHAR,
     val         FLOAT
 );
