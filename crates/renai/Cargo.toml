@@ -16,7 +16,6 @@ clap = { workspace = true, features = ["derive"] }
 dotenv.workspace = true
 env_logger.workspace = true
 log.workspace = true
-renai-app = { version = "0.1.0", path = "../renai-app" }
 renai-client = { version = "0.1.0", path = "../renai-client" }
 renai-common = { version = "0.1.0", path = "../renai-common" }
 renai-fs = { version = "0.1.0", path = "../renai-fs" }

@@ -1,3 +1,5 @@
+pub(crate) mod schema;
+
 use anyhow::Result;
 use colored::Colorize;
 use futures::future::join_all;
