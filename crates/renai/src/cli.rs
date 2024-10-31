@@ -15,18 +15,14 @@ pub enum Commands {
         actions: Vec<FetchArgs>,
     },
 
-    /// Migrate schemas from the CouchDB filestore to the PostgreSQL server.
-    Migrate {
-        schema: Vec<MigrationArgs>,
-
-        /// Reset the PostgreSQL tables, recreating them from scratch.
-        #[arg(short, long)]
-        reset: bool,
-    },
-
     /// Clean up directories of the file store.
     Rm {
         directories: Vec<RmArgs>,
+    },
+
+    /// Insert datasets into PostgreSQL
+    Insert {
+        datasets: Vec<Dataset>,
     },
 
     Test,
@@ -42,19 +38,19 @@ pub enum FetchArgs {
 
     /// Unzip the SEC bulk zip file.
     Unzip,
+}
 
-    /// Collect price & core data, and upload it.
-    Collection,
+#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Dataset {
+    StockIndex,
+    StockPrices,
+    StockMetrics, // <-- bulk .zip required
+    CryptoPrices,
+    // Econ,
 }
 
 #[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RmArgs {
     /// Remove the buffer directory; used in holding bulk data.
     Buffer,
-}
-
-#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
-pub enum MigrationArgs {
-    /// The stock schema (Yahoo! Finance & SEC).
-    Stocks,
 }

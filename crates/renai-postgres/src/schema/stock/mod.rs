@@ -1,3 +1,3 @@
-pub(crate) mod index;
-pub(crate) mod metrics;
-pub(crate) mod prices;
+pub mod index;
+pub mod metrics;
+pub mod prices;

@@ -1,25 +1,44 @@
-use renai_client::prelude::{build_client, Util};
-use renai_common::fs::{read_json, unzip};
+use crate::schema::common::convert_date_type;
+use renai_common::fs::read_json;
 use serde::Deserialize;
 use std::collections::HashMap as Map;
 use tracing::{error, info, trace};
 
-#[allow(dead_code)]
-pub async fn download_zip_file() -> anyhow::Result<()> {
-    let client = build_client(&dotenv::var("USER_AGENT")?)?;
-    let url = "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip";
-    let path = "./buffer/companyfacts.zip";
-    client.download_file(url, path).await?;
-    unzip(path, "./buffer/companyfacts").await?;
-    Ok(())
-}
+/// Time taken: ~4-7s per ticker.
+pub(crate) async fn fetch(cik_str: &str, ticker: &str, title: &str) -> anyhow::Result<Vec<Metric>> {
+    let path = format!("./buffer/companyfacts/CIK{cik_str}.json");
 
-pub(crate) fn convert_date_type(str_date: &String) -> anyhow::Result<chrono::NaiveDate> {
-    let date = chrono::NaiveDate::parse_from_str(&str_date, "%Y-%m-%d").map_err(|e| {
-        error!("failed to parse date string; expected form YYYYMMDD - received: {str_date}");
+    // read the file
+    trace!("reading file at path: \"{path}\"");
+    let json: Facts = read_json(&path).await.map_err(|e| {
+        error!("failed to read file at \"{path}\" for [{ticker}] {title}: {e}");
         e
     })?;
-    Ok(date)
+
+    // read the JSON
+    trace!("reformatting facts dataset for [{ticker}] {title}");
+    let mut output: Vec<Metric> = vec![];
+    for (dei_or_us_gaap, metric) in json.facts {
+        match dei_or_us_gaap.as_str() {
+            "dei" | "us-gaap" | "srt" | "invest" => {
+                for (metric_name, dataset) in metric {
+                    for (units, values) in dataset.units {
+                        for cell in values {
+                            output.push(Metric {
+                                dated: convert_date_type(&cell.dated)?,
+                                metric: metric_name.clone(),
+                                val: cell.val,
+                                unit: units.clone(),
+                                taxonomy: dei_or_us_gaap.clone(),
+                            });
+                        }
+                    }
+                }
+            }
+            _ => info!("Unexpected dataset found in Company Fact data {dei_or_us_gaap}"),
+        };
+    }
+    Ok(output)
 }
 
 // >> Output
@@ -34,48 +53,15 @@ pub(crate) fn convert_date_type(str_date: &String) -> anyhow::Result<chrono::Nai
 //      ...
 // ]
 #[derive(Debug)]
-pub(crate) struct MetricsOutput {
-    pub(crate) dated: chrono::NaiveDate,
-    pub(crate) metric: String,
-    pub(crate) val: f64,
+pub struct Metric {
+    pub dated: chrono::NaiveDate,
+    pub metric: String,
+    pub val: f64,
+    pub unit: String,
+    pub taxonomy: String,
 }
 
-type Metrics = Vec<MetricsOutput>;
-pub(crate) async fn fetch(cik_str: &str, ticker: &str, title: &str) -> anyhow::Result<Metrics> {
-    let path = format!("./buffer/companyfacts/CIK{cik_str}.json");
-
-    // read the file
-    trace!("reading file at path: \"{path}\"");
-    let json: Facts = read_json(&path).await.map_err(|e| {
-        error!("failed to read file at \"{path}\" for [{ticker}] {title}: {e}");
-        e
-    })?;
-
-    // read the JSON
-    trace!("reformatting facts dataset for [{ticker}] {title}");
-    let mut output: Vec<MetricsOutput> = vec![];
-    for (dei_or_us_gaap, metric) in json.facts {
-        match dei_or_us_gaap.as_str() {
-            "dei" | "us_gaap" | "us-gaap" | "invest" | "ifrs-full" | "srt" => {
-                for (metric_name, dataset) in metric {
-                    for (_, values) in dataset.units {
-                        for cell in values {
-                            output.push(MetricsOutput {
-                                dated: convert_date_type(&cell.dated)?,
-                                metric: metric_name.clone(),
-                                val: cell.val,
-                            });
-                        }
-                    }
-                }
-            }
-            _ => info!("Unexpected dataset found in Company Fact data {dei_or_us_gaap}"),
-        };
-    }
-    Ok(output)
-}
-
-// >> Input; Yahoo Finance price data API
+// >> Input: SEC companyfacts.zip
 // ==========================================================================
 //
 // {
@@ -83,14 +69,14 @@ pub(crate) async fn fetch(cik_str: &str, ticker: &str, title: &str) -> anyhow::R
 #[derive(Deserialize, Debug)]
 pub(crate) struct Facts {
     //                      vvvv == "MetricName"
-    facts: Map<String, Map<String, Metric>>,
+    facts: Map<String, Map<String, MetricData>>,
     //          ^^^^  == "dei" or "us-gaap"
 }
 
 //          "dei": {
 //              EntityCommonStockSharesOutstanding": {
 #[derive(Deserialize, Debug)]
-pub(crate) struct Metric {
+pub(crate) struct MetricData {
     units: Map<String, Vec<DataCell>>,
     //          ^^^^ == "shares" or "USD"
 }

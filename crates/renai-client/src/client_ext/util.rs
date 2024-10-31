@@ -1,5 +1,4 @@
 use anyhow::Result;
-use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use std::future::Future;
 use std::sync::Arc;
@@ -9,6 +8,7 @@ use tokio::{
     sync::Mutex,
     time::sleep,
 };
+use tracing::trace;
 
 const CHUNK_SIZE: u64 = 100 * 1024 * 1024; // 100 MB
 
@@ -43,15 +43,6 @@ impl ClientUtilExt for Client {
             .and_then(|len| len.parse::<u64>().ok())
             .unwrap_or(0);
 
-        // Build a progress bar
-        let pb = ProgressBar::new(file_size);
-        pb.set_style(
-            ProgressStyle::default_bar()
-                .template("[{elapsed_precise}] [{bar:40}] {bytes}/{total_bytes} ({eta})")?
-                .progress_chars("#|-"),
-        );
-        let pb = Arc::new(pb);
-
         // Ensure the directory exists
         let dir_path = std::path::Path::new(path)
             .parent()
@@ -71,11 +62,9 @@ impl ClientUtilExt for Client {
             let client = self.clone();
             let url = url.to_string();
             let file = file.clone();
-            let pb = pb.clone();
             tasks.push(tokio::spawn(async move {
                 let mut file = file.lock().await;
                 let _download_chunk = client.download_chunk(&url, start, end, &mut file).await;
-                pb.inc(end - start);
             }));
         }
 
@@ -83,18 +72,15 @@ impl ClientUtilExt for Client {
         let mut outputs = Vec::with_capacity(tasks.len());
         for task in tasks {
             outputs.push(task.await.unwrap());
-            sleep(std::time::Duration::from_secs(1)).await;
+            // sleep(std::time::Duration::from_secs(1)).await;
         }
 
         // Finish the progress bar
         let file = Arc::try_unwrap(file).unwrap().into_inner();
-        let msg = format!(
-            "{} downloaded succesfully ({})",
-            path,
+        trace!(
+            "{} downloaded",
             indicatif::HumanBytes(file.metadata().await?.len())
         );
-        let pb = Arc::try_unwrap(pb).unwrap();
-        pb.finish_with_message(msg);
 
         Ok(())
     }
@@ -122,6 +108,10 @@ impl ClientUtilExt for Client {
         let body = response.bytes().await?;
         let _seek = output_file.seek(tokio::io::SeekFrom::Start(start)).await?;
         let _write = output_file.write_all(&body).await?;
+        trace!(
+            "downloaded chunk: {}",
+            indicatif::HumanBytes(body.len().try_into().expect("usize to u64"))
+        );
         Ok(())
     }
 }

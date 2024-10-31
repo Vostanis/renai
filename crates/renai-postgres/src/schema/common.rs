@@ -1,17 +1,9 @@
-// use chrono::{DateTime, NaiveDate};
 use serde::{Deserialize, Deserializer};
+use tracing::error;
 
 /// Used within the SEC datasets; each company is given a CIK code (and ticker, and title),
-/// intended to be a 10-character string, as below:
-///
-///     0000004321 - NVDA - Nvidia
-///
-/// But, many encounter the common issue, as below:
-///
-///     4321 - NVDA - Nvidia
-///
-/// `de_cik` is designed to handle both.
-pub(crate) fn de_cik<'de, D>(deserializer: D) -> Result<String, D::Error>
+/// intended to be a 10-character string.
+pub fn de_cik<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -38,22 +30,18 @@ where
     }
 }
 
-// Transform a `unix timestamp`    -> `naive date`, e.g.,
-//             `1705795200`        -> `2024-01-01`
-// pub(crate) fn de_timestamp_to_naive_date<'de, D>(
-//     deserializer: D,
-// ) -> Result<Vec<NaiveDate>, D::Error>
-// where
-//     D: Deserializer<'de>,
-// {
-//     let timestamps: Vec<i64> = Deserialize::deserialize(deserializer)?;
-//     let dates = timestamps
-//         .into_iter()
-//         .map(|timestamp| {
-//             DateTime::from_timestamp(timestamp, 0)
-//                 .expect("Expected Vector of Timestamp integers")
-//                 .date_naive()
-//         })
-//         .collect();
-//     Ok(dates)
-// }
+/// Convert a &String to a chrono::NaiveDate (so that it can inserted directly as DATE)
+pub fn convert_date_type(str_date: &String) -> anyhow::Result<chrono::NaiveDate> {
+    let date = chrono::NaiveDate::parse_from_str(&str_date, "%Y-%m-%d").map_err(|e| {
+        error!("failed to parse date string; expected form YYYYMMDD - received: {str_date}");
+        e
+    })?;
+    Ok(date)
+}
+
+/// Convert a u32 timestamp to a chrono::NaiveDate.
+pub fn convert_timestamp(timestamp: u32) -> chrono::NaiveDate {
+    chrono::DateTime::from_timestamp(timestamp.into(), 0)
+        .expect("Expected Vector of Timestamp integers")
+        .date_naive()
+}

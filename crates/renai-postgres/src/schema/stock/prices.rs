@@ -1,8 +1,13 @@
 #![allow(dead_code)]
 
+use crate::schema::common::convert_timestamp;
 use reqwest::Client;
 use serde::Deserialize;
+use tracing::{error, trace};
 
+/// Fetches prices data from Yahoo Finance, per ticker.
+///
+/// Time taken: 45-75 ms per ticker.
 pub(crate) async fn fetch(
     client: &Client,
     ticker: &String,
@@ -15,20 +20,20 @@ pub(crate) async fn fetch(
             .send()
             .await
             .map_err(|e| {
-                tracing::error!("[{ticker}] {title} failed to fetch Price response | ERROR: {e} | URL: {url}");
+                error!("[{ticker}] {title} failed to fetch Price response | ERROR: {e} | URL: {url}");
                 e
             })?
             .json()
             .await
             .map_err(|e| {
-                tracing::error!(
+                error!(
                     "[{ticker}] {title} failed to transform Price response | ERROR: {e} | URL: {url}"
                 );
                 e
             })?;
 
         if let Some(data) = response.chart.result {
-            tracing::trace!("Price data fetched successfully for [{}] {}", ticker, title);
+            trace!("Price data fetched successfully for [{}] {}", ticker, title);
             let base = &data[0];
             let price = &base.indicators.quote[0];
             let adjclose = &base.indicators.adjclose[0].adjclose;
@@ -45,7 +50,7 @@ pub(crate) async fn fetch(
                 .map(
                     |((((((open, high), low), close), volume), adj_close), timestamp)| PriceCell {
                         stock_id: ticker.clone(),
-                        dated: ts_to_date(*timestamp),
+                        dated: convert_timestamp(*timestamp),
                         open: *open,
                         high: *high,
                         low: *low,
@@ -56,17 +61,12 @@ pub(crate) async fn fetch(
                 )
                 .collect::<Vec<PriceCell>>()
         } else {
-            tracing::error!("[{ticker}] {title} failed to fetch Price data | URL: {url}");
+            error!("[{ticker}] {title} failed to fetch Price data | URL: {url}");
             vec![]
         }
     };
-    Ok(price)
-}
 
-pub fn ts_to_date(timestamp: u32) -> chrono::NaiveDate {
-    chrono::DateTime::from_timestamp(timestamp.into(), 0)
-        .expect("Expected Vector of Timestamp integers")
-        .date_naive()
+    Ok(price)
 }
 
 pub(crate) async fn url(ticker: &str) -> String {
@@ -78,19 +78,24 @@ pub(crate) async fn url(ticker: &str) -> String {
     )
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Output
+// ==========================================================================
 #[derive(Debug)]
-pub(crate) struct PriceCell {
-    pub(crate) stock_id: String,
-    pub(crate) dated: chrono::NaiveDate,
-    pub(crate) open: f64,
-    pub(crate) high: f64,
-    pub(crate) low: f64,
-    pub(crate) close: f64,
-    pub(crate) adj_close: f64,
-    pub(crate) volume: i32,
+pub struct PriceCell {
+    pub stock_id: String,
+    pub dated: chrono::NaiveDate,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub adj_close: f64,
+    pub volume: i32,
 }
 
-// `price` schema
+// >> Input: Yahoo Finance
+// ==========================================================================
 #[derive(Deserialize, Debug)]
 pub struct PriceHistory {
     pub chart: PriceResponse,

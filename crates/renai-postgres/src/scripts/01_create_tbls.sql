@@ -16,7 +16,9 @@
 CREATE TABLE IF NOT EXISTS stock.index (
     stock_id    CHAR(10) PRIMARY KEY,
     ticker      VARCHAR(8),
-    title       VARCHAR(255)
+    title       VARCHAR(255),
+    industry	VARCHAR(255),
+    nation	VARCHAR(6)
 );
 
 -- stock_id   | dated 	   | opening | high | closing | low  | adj_close | volume
@@ -40,7 +42,9 @@ CREATE TABLE IF NOT EXISTS stock.metrics (
     stock_id    CHAR(10),
     dated       DATE,
     metric      VARCHAR,
-    val         FLOAT
+    val         FLOAT,
+    unit	VARCHAR,
+    taxonomy    VARCHAR
 );
 
 -- ## CRYPTO
@@ -48,7 +52,7 @@ CREATE TABLE IF NOT EXISTS stock.metrics (
 -- --------------------------------------------------------------------------
 -- BTCUSD | 2022-01-01 | 1234    | 1234 | 1234    | 1234 | 1234      | 1234
 CREATE TABLE IF NOT EXISTS crypto.prices (
-    pair	VARCHAR, -- e.g., BTC
+    ticker	VARCHAR, -- e.g., BTC
     dated       DATE,
     opening     FLOAT,
     high        FLOAT,
