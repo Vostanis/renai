@@ -3,7 +3,7 @@ use clap::Parser;
 use dialoguer::{theme::ColorfulTheme, FuzzySelect};
 use dotenv::{dotenv, var};
 use renai_client::prelude::*;
-use renai_postgres::schema::stock::index::Tickers;
+use renai_pg::schema::stock::index::Tickers;
 use tracing::{debug, error, trace};
 
 mod cli;
@@ -123,11 +123,6 @@ async fn process_dataset_args(datasets: &[cli::Dataset]) -> Result<()> {
         .await?
         .json()
         .await?;
-
-    // >> crypto pairs
-    let cryptos = vec![
-        "BTCUSDT", "ETHUSDT", "SOLUSDT", "SUIUSDT", "KASUSDT", "ALPHUSDT",
-    ];
 
     // execute on each argument
     while let Some(dataset) = datasets.iter().next() {

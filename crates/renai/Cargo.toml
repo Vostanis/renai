@@ -20,7 +20,7 @@ log.workspace = true
 renai-client = { version = "0.1.0", path = "../renai-client" }
 renai-common = { version = "0.1.0", path = "../renai-common" }
 renai-fs = { version = "0.1.0", path = "../renai-fs" }
-renai-postgres = { version = "0.1.0", path = "../renai-postgres" }
+renai-pg = { version = "0.1.0", path = "../renai-pg" }
 reqwest.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
