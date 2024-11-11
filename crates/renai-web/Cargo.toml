@@ -23,4 +23,7 @@ tokio.workspace = true
 tokio-postgres = "0.7.12"
 utoipa = "5.2.0"
 utoipa-actix-web = "0.1.2"
+utoipa-rapidoc = { version = "5.0.0", features = ["actix-web"] }
+utoipa-redoc = { version = "5.0.0", features = ["actix-web"] }
+utoipa-scalar = { version = "0.2.0", features = ["actix-web"] }
 utoipa-swagger-ui = { version = "8.0.3", features = ["actix-web"] }
