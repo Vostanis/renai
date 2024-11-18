@@ -4,7 +4,9 @@ use dialoguer::{theme::ColorfulTheme, FuzzySelect};
 use dotenv::{dotenv, var};
 use renai_client::prelude::*;
 use renai_pg::schema::stock::index::Tickers;
-use tracing::{debug, error, trace};
+use tokio_postgres::{self as pg, NoTls};
+use tracing::{debug, error, subscriber, trace};
+use tracing_subscriber::FmtSubscriber;
 
 mod cli;
 
@@ -12,7 +14,11 @@ fn preprocess() {
     dotenv().ok();
 
     // initialise logger
-    env_logger::init();
+    // env_logger::init();
+    let my_subscriber = FmtSubscriber::builder()
+        .with_max_level(tracing::Level::TRACE)
+        .finish();
+    subscriber::set_global_default(my_subscriber).expect("Set subscriber");
 }
 
 #[tokio::main]
@@ -55,12 +61,42 @@ async fn main() -> Result<()> {
         Insert { datasets } => {
             use cli::Dataset::*;
 
-            while let Some(dataset) = datasets.iter().next() {
+            for dataset in datasets {
                 match dataset {
-                    StockIndex => {}
-                    StockPrices => {}
-                    StockMetrics => {}
-                    CryptoPrices => {}
+                    &StockIndex => {}
+                    &StockPrices => {}
+                    &StockMetrics => {}
+
+                    &CryptoIndex => {
+                        use renai_pg::schema::crypto::*;
+
+                        // open pg connection
+                        let (mut pg_client, pg_conn) =
+                            pg::connect(&var("POSTGRES_URL")?, NoTls).await?;
+                        tokio::spawn(async move {
+                            if let Err(e) = pg_conn.await {
+                                error!("connection error: {}", e);
+                            }
+                        });
+
+                        index::insert(&mut pg_client).await?;
+                    }
+
+                    &CryptoPrices => {
+                        use renai_pg::schema::crypto::*;
+
+                        // open pg connection
+                        let (mut pg_client, pg_conn) =
+                            pg::connect(&var("POSTGRES_URL")?, NoTls).await?;
+                        tokio::spawn(async move {
+                            if let Err(e) = pg_conn.await {
+                                error!("connection error: {}", e);
+                            }
+                        });
+
+                        binance::Binance::scrape(&mut pg_client).await?;
+                        kucoin::KuCoin::scrape(&mut pg_client).await?;
+                    }
                 }
             }
         }
@@ -97,58 +133,59 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn process_dataset_args(datasets: &[cli::Dataset]) -> Result<()> {
-    use cli::Dataset::*;
-    use tokio_postgres::{self as pg, NoTls};
-
-    // build http_client & pg_conn
-    // >> http client
-    let http_client = reqwest::ClientBuilder::new()
-        .user_agent(&var("USER_AGENT")?)
-        .build()?;
-
-    // >> pg connection
-    let (pg_client, pg_conn) = pg::connect(&var("POSTGRES_URL")?, NoTls).await?;
-    tokio::spawn(async move {
-        if let Err(e) = pg_conn.await {
-            error!("connection error: {}", e);
-        }
-    });
-
-    // pre-executables
-    // >> stock tickers
-    let stocks: Tickers = http_client
-        .get("https://www.sec.gov/files/company_tickers.json")
-        .send()
-        .await?
-        .json()
-        .await?;
-
-    // execute on each argument
-    while let Some(dataset) = datasets.iter().next() {
-        match dataset {
-            // stocks
-            &StockIndex => {
-                // Stocks::insert(&tickers, &mut pg_client).await?;
-            }
-            &StockPrices => {
-                // let mut stream = stream::iter(tickers);
-                // Stocks::insert(&tickers, &mut pg_client).await?;
-            }
-            &StockMetrics => {
-                // Stocks::insert(&tickers, &mut pg_client).await?;
-            }
-            // cryptos
-            &CryptoPrices => {
-                // Binance::get(&cryptos, &mut pg_client).await;
-                // KuCoin::get(&cryptos, &mut pg_client).await;
-                // Kraken::get(&cryptos, &mut pg_client).await;
-            }
-        }
-    }
-
-    Ok(())
-}
+// async fn process_dataset_args(datasets: &[cli::Dataset]) -> Result<()> {
+//     use cli::Dataset::*;
+//     use tokio_postgres::{self as pg, NoTls};
+//
+//     // build http_client & pg_conn
+//     // >> http client
+//     let http_client = reqwest::ClientBuilder::new()
+//         .user_agent(&var("USER_AGENT")?)
+//         .build()?;
+//
+//     // >> pg connection
+//     let (pg_client, pg_conn) = pg::connect(&var("POSTGRES_URL")?, NoTls).await?;
+//     tokio::spawn(async move {
+//         if let Err(e) = pg_conn.await {
+//             error!("connection error: {}", e);
+//         }
+//     });
+//
+//     // pre-executables
+//     // >> stock tickers
+//     let stocks: Tickers = http_client
+//         .get("https://www.sec.gov/files/company_tickers.json")
+//         .send()
+//         .await?
+//         .json()
+//         .await?;
+//
+//     // execute on each argument
+//     while let Some(dataset) = datasets.iter().next() {
+//         match dataset {
+//             // stocks
+//             &StockIndex => {
+//                 // Stocks::insert(&tickers, &mut pg_client).await?;
+//             }
+//             &StockPrices => {
+//                 // let mut stream = stream::iter(tickers);
+//                 // Stocks::insert(&tickers, &mut pg_client).await?;
+//             }
+//             &StockMetrics => {
+//                 // Stocks::insert(&tickers, &mut pg_client).await?;
+//             }
+//
+//             &CryptoIndex => {}
+//             &CryptoPrices => {
+//                 // Binance::get(&cryptos, &mut pg_client).await;
+//                 // KuCoin::get(&cryptos, &mut pg_client).await;
+//                 // Kraken::get(&cryptos, &mut pg_client).await;
+//             }
+//         }
+//     }
+//
+//     Ok(())
+// }
 
 async fn process_fetch_args(actions: &[cli::FetchArgs]) -> Result<()> {
     use cli::FetchArgs::*;

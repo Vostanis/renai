@@ -45,6 +45,7 @@ pub enum Dataset {
     StockIndex,
     StockPrices,
     StockMetrics, // <-- bulk .zip required
+    CryptoIndex,
     CryptoPrices,
     // Econ,
 }

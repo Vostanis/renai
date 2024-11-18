@@ -25,14 +25,14 @@ CREATE TABLE IF NOT EXISTS stock.index (
 -- 0123456789 | 2022-01-01 | 1234    | 1234 | 1234    | 1234 | 1234      | 1234
 CREATE TABLE IF NOT EXISTS stock.prices (
     stock_id    CHAR(10) NOT NULL,
-    time   	TIMESTAMP NOT NULL,
-    interval    CHAR(2) NOT NULL,
+    time   	TIMESTAMP WITH TIME ZONE NOT NULL,
+    interval    CHAR(3) NOT NULL,
     opening     FLOAT,
     high        FLOAT,
     low         FLOAT,
     closing     FLOAT,
     adj_close   FLOAT,
-    volume      INT,
+    volume      BIGINT,
     PRIMARY KEY (stock_id, time, interval)
 );
 

@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use chrono::{DateTime, Utc};
 use reqwest::Client;
 use serde::Deserialize;
 use tracing::{error, trace};
@@ -16,25 +17,41 @@ pub(crate) async fn fetch(
 ) -> anyhow::Result<Vec<PriceCell>> {
     let price = {
         let url = url(&ticker, interval, range).await;
-        let response: PriceHistory = client
+        trace!("Fetching price data for [{ticker}] {title} from Yahoo Finance");
+        let response = client
             .get(&url)
             .send()
             .await
             .map_err(|e| {
-                error!("[{ticker}] {title} failed to fetch Price response | ERROR: {e} | URL: {url}");
+                error!("[{ticker}] {title} price fetching error: {e}\nURL: {url}");
                 e
             })?
-            .json()
+            .bytes()
             .await
             .map_err(|e| {
-                error!(
-                    "[{ticker}] {title} failed to transform Price response | ERROR: {e} | URL: {url}"
-                );
+                error!("[{ticker}] {title} byte trasnformation error: {e}\nURL: {url}");
                 e
             })?;
 
-        if let Some(data) = response.chart.result {
-            trace!("Price data fetched successfully for [{}] {}", ticker, title);
+        // error check the deserialization
+        trace!("Deserializing price data for [{ticker}] {title} from Yahoo Finance");
+        let de = match serde_json::from_slice::<PriceHistory>(&response) {
+            Ok(data) => data,
+            Err(e) => {
+                // let response =
+                //     serde_json::from_slice::<serde_json::Value>(&response).map_err(|e| {
+                //         error!("could not derive response to serde_json::Value: {e}\nURL: {url}");
+                //         e
+                //     })?;
+                error!("[{ticker}] {title} deserialization error: {e}\nURL: {url})");
+                return Err(e.into());
+            }
+        };
+        trace!("Price data fetched & deserialized successfully for [{ticker}] {title}");
+
+        // scale Yahoo's data and transform it
+        if let Some(data) = de.chart.result {
+            trace!("Transforming price data for [{ticker}] {title}");
             let base = &data[0];
             let price = &base.indicators.quote[0];
             let adjclose = &base.indicators.adjclose[0].adjclose;
@@ -51,7 +68,7 @@ pub(crate) async fn fetch(
                 .map(
                     |((((((open, high), low), close), volume), adj_close), timestamp)| PriceCell {
                         stock_id: ticker.clone(),
-                        time: *timestamp,
+                        time: DateTime::from_timestamp(*timestamp, 0).expect("invalid timestamp"),
                         interval: interval.to_string(),
                         open: *open,
                         high: *high,
@@ -63,7 +80,7 @@ pub(crate) async fn fetch(
                 )
                 .collect::<Vec<PriceCell>>()
         } else {
-            error!("[{ticker}] {title} failed to fetch Price data | URL: {url}");
+            error!("[{ticker}] {title} containted no \"chart.result\" object\nURL: {url}");
             vec![]
         }
     };
@@ -85,14 +102,14 @@ pub(crate) async fn url(ticker: &str, interval: &str, range: &str) -> String {
 #[derive(Debug)]
 pub struct PriceCell {
     pub stock_id: String,
-    pub time: i64,
+    pub time: DateTime<Utc>,
     pub interval: String,
     pub open: f64,
     pub high: f64,
     pub low: f64,
     pub close: f64,
     pub adj_close: f64,
-    pub volume: i32,
+    pub volume: i64,
 }
 
 // >> Input: Yahoo Finance
@@ -100,6 +117,7 @@ pub struct PriceCell {
 #[derive(Deserialize, Debug)]
 pub struct PriceHistory {
     pub chart: PriceResponse,
+    pub error: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -125,7 +143,7 @@ pub struct Quote {
     pub high: Vec<f64>,
     pub low: Vec<f64>,
     pub close: Vec<f64>,
-    pub volume: Vec<i32>,
+    pub volume: Vec<i64>,
 }
 
 #[derive(Deserialize, Debug)]

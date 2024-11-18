@@ -1,3 +1,4 @@
+use crate::schema::crypto::index::PAIRS;
 use dotenv::var;
 use serde::de::{IgnoredAny, SeqAccess, Visitor};
 use serde::Deserialize;
@@ -99,14 +100,14 @@ impl<'de> Visitor<'de> for Kline {
     }
 }
 
-pub(crate) struct Kraken<'a> {
+pub(crate) struct Kraken {
     client: Arc<reqwest::Client>,
-    symbols: Vec<&'a str>,
+    // symbols: Vec<&'a str>,
 }
 
 use reqwest::header::{HeaderMap, HeaderValue};
 #[allow(dead_code)]
-impl<'a> Kraken<'a> {
+impl Kraken {
     fn new() -> Self {
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -122,19 +123,23 @@ impl<'a> Kraken<'a> {
                     .build()
                     .unwrap(),
             ),
-            symbols: vec![
-                "BTCUSDT", "ETHUSDT", "SOLUSDT", "SUIUSDT", "KASUSDT", "ALPHUSDT", "ZENUSDT",
-            ],
+            // symbols: vec![
+            //     "BTCUSDT", "ETHUSDT", "SOLUSDT", "SUIUSDT", "KASUSDT", "ALPHUSDT", "ZENUSDT",
+            // ],
         }
     }
 
     pub async fn fetch(pg_client: &mut tokio_postgres::Client) -> anyhow::Result<()> {
         let api = Self::new();
 
-        let mut stream = stream::iter(&api.symbols);
+        let pairs = PAIRS.clone();
+        let mut stream = stream::iter(&pairs);
         while let Some(symbol) = stream.next().await {
             // api parameters
-            let url = format!("https://api.kraken.com/0/public/OHLC?pair={symbol}&interval=1440");
+            let url = format!(
+                "https://api.kraken.com/0/public/OHLC?pair={}&interval=1440",
+                symbol.1
+            );
 
             // async parameters
             let client = api.client.clone();

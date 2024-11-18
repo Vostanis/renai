@@ -1,3 +1,4 @@
+pub mod api;
 pub mod fs;
 pub mod schema;
 
@@ -82,9 +83,9 @@ async fn main() -> anyhow::Result<()> {
         );
     }
 
-    // let mut pg_client = pg_client.lock().await;
+    let mut pg_client = pg_client.lock().await;
     // crypto::index::insert(&mut pg_client).await?;
-    // crypto::Binance::fetch(&mut pgclient).await?;
+    // crypto::binance::Binance::fetch(&mut pg_client).await?;
     // crypto::KuCoin::fetch(&mut pgclient).await?;
     // crypto::Kraken::fetch(&mut pgclient).await.unwrap();
 

@@ -9,12 +9,12 @@ use serde::{Deserialize, Serialize};
 /// ```json
 /// [
 ///     {
-//          "industry": "Technology",
-//          "ticker": "AAPL",
-//          "title": "Apple Inc."
-//      },
-//      ...
-//  ]
+///         "industry": "Technology",
+///         "ticker": "AAPL",
+///         "title": "Apple Inc."
+///     },
+///     ...
+/// ]
 /// ```
 #[derive(Deserialize, Serialize, utoipa::ToSchema)]
 struct StockIndex {
@@ -98,7 +98,7 @@ struct StockMetrics {
     path = "/stock/metrics/{ticker}",
     responses(
         (
-            status = 200, description = "Financial metrics of US stocks", 
+            status = 200, description = "Financial metrics of US stocks",
             body = [StockMetrics], content_type = "application/json", 
             example = json!([
                 {

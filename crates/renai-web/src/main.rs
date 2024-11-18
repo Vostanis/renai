@@ -44,6 +44,7 @@ async fn main() -> std::io::Result<()> {
             // api endpoints
             .service(stock::index)
             .service(stock::metrics)
+            .service(stock::prices)
             // api documentation
             .service(RapiDoc::with_openapi("/openapi.json", ApiDoc::openapi()).path("/rapidoc"))
             .service(Redoc::with_url("/redoc", ApiDoc::openapi())) // <-- crypto brokers use this

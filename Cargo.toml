@@ -1,5 +1,5 @@
 [workspace] 
-members = [ "api/renai-rs", "crates/*" ]
+members = [ "crates/*" ]
 resolver = "2"
 
 [workspace.package]

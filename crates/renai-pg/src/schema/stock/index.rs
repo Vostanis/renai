@@ -52,7 +52,8 @@ impl Tickers {
             .prepare(
                 "
             INSERT INTO stock.index (stock_id, ticker, title, industry, nation)
-            VALUES ($1, $2, $3, $4, $5)",
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT stock_id DO NOTHING",
             )
             .await?;
 
@@ -142,10 +143,10 @@ impl Ticker {
         pg_client: &mut tokio_postgres::Client,
     ) -> anyhow::Result<()> {
         // price data intervals
-        let range = "max";
-        for interval in &[
-            "1m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo", "3mo",
-        ] {
+        for interval in &["1d", "1wk", "1mo", "3mo"] {
+            // "max" keyword not supported as suggested
+            let range = if *interval == "1m" { "8d" } else { "10y" };
+
             // fetch price dataset from Yahoo Finance
             let dataset = match prices::fetch(
                 http_client,
@@ -167,10 +168,10 @@ impl Ticker {
             };
 
             let query = pg_client.prepare("
-            INSERT INTO stock.prices (stock_id, time, interval, opening, high, low, closing, adj_close, volume)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            ON CONFLICT (stock_id, dated) DO NOTHING"
-        ).await?;
+                INSERT INTO stock.prices (stock_id, time, interval, opening, high, low, closing, adj_close, volume)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ON CONFLICT (stock_id, time, interval) DO NOTHING"
+            ).await?;
 
             let transaction = Arc::new(pg_client.transaction().await?);
 
@@ -244,7 +245,9 @@ impl Ticker {
             .prepare(
                 "
             INSERT INTO stock.metrics (stock_id, dated, metric, val, unit, taxonomy)
-            VALUES ($1, $2, $3, $4, $5, $6)",
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (stock_id, dated, metric, val, unit, taxonomy) DO NOTHING
+            ",
             )
             .await?;
 
