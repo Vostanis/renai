@@ -1,0 +1,31 @@
+[package]
+name = "noth-warehouse"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow.workspace = true
+async-trait = "0.1.83"
+base64 = "0.22.1"
+chrono = "0.4.38"
+colored.workspace = true
+dotenv.workspace = true
+futures.workspace = true
+hmac = "0.12.1"
+lazy_static = "1.5.0"
+log.workspace = true
+noth-util = { version = "0.1.0", path = "../noth-util" }
+num_cpus.workspace = true
+postgres-types.workspace = true
+rayon.workspace = true
+reqwest.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+sha2 = "0.10.8"
+tokio.workspace = true
+tokio-postgres.workspace = true
+tokio-stream.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

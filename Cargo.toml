@@ -3,7 +3,7 @@ members = [ "crates/*" ]
 resolver = "2"
 
 [workspace.package]
-name = "renai"
+name = "noth"
 version = "0.1.0"
 authors = ["Vostanis"]
 rust-version = "1.77"
@@ -16,13 +16,20 @@ anyhow = { version = "1" }
 clap = { version = "4.5.13", features = ["derive"] }
 colored ={ version = "2.1.0" }
 dotenv = { version = "0.15.0" }
+elasticsearch = { version = "8.16.0-alpha.1" }
 env_logger = { version = "0.11.3" }
 futures = { version = "0.3.3" }
 indicatif = { version = "0.17.8" }
 log = { version = "0.4.22" }
 num_cpus ={ version = "1.0" }
+postgres-types = { version = "0.2.8" }
 rayon = { version = "1.10.0" }
 reqwest = { version = "0.12.5", features = ["json"] }
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = { version = "1.0.120" }
 tokio = { version = "1", features = ["full"] }
+tokio-postgres = { version = "0.7.11", features = ["with-chrono-0_4"] }
+tokio-stream = { version = "0.1.6" }
+tracing = { version = "0.1.40" }
+tracing-subscriber = { version = "0.3.18" }
+url = { version = "2.5.4" }
