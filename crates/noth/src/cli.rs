@@ -8,7 +8,7 @@ pub struct Cli {
     pub command: Commands,
 
     /// Sets the level of tracing
-    #[arg(long, default_value = "INFO")]
+    #[arg(long, default_value = "INFO", global = true)]
     pub trace: TraceLevel,
 }
 
@@ -55,9 +55,11 @@ pub enum RmArgs {
 }
 
 #[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
+#[clap(rename_all = "UPPERCASE")]
 pub enum TraceLevel {
     DEBUG,
-    INFO,
-    WARN,
     ERROR,
+    INFO,
+    TRACE,
+    WARN,
 }

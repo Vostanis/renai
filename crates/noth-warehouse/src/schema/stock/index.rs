@@ -33,6 +33,12 @@ pub static METRIC_QUERY: &str = "
     ON CONFLICT (stock_id, dated, metric, val, unit, taxonomy) DO NOTHING
 ";
 
+pub static FILINGS_QUERY: &str = "
+    INSERT INTO stock.filings (stock_id, dated, filename, filetype, url, content, content_ts)
+    VALUES ($1, $2, $3, $4, $5, $6, to_tsvector($6))
+    ON CONFLICT (stock_id, filename) DO NOTHING
+";
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // SEC API

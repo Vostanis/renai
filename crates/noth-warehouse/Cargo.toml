@@ -19,13 +19,14 @@ log.workspace = true
 noth-util = { version = "0.1.0", path = "../noth-util" }
 num_cpus.workspace = true
 postgres-types.workspace = true
-rayon.workspace = true
+rayon = "1.10.0"
 reqwest.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 sha2 = "0.10.8"
 tokio.workspace = true
-tokio-postgres.workspace = true
+tokio-postgres = { workspace = true, features = ["array-impls"] }
 tokio-stream.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+url.workspace = true

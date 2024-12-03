@@ -49,6 +49,18 @@ CREATE TABLE IF NOT EXISTS stock.metrics (
     PRIMARY KEY (stock_id, dated, metric, val, unit, taxonomy)
 );
 
+-- stock_id   | filename          | url                   | text 
+-- ----------------------------------------------------------------
+-- 0123456789 | nvda-20240101.htm | http://www.sec.gov... | ...
+CREATE TABLE IF NOT EXISTS stock.filings {
+    stock_id    CHAR(10) NOT NULL,
+    filename    VARCHAR NOT NULL,
+    filetype    VARCHAR,
+    url         VARCHAR NOT NULL,
+    text        LONGTEXT NOT NULL,
+    PRIMARY KEY (stock_id, filename)
+};
+
 -- ## CRYPTO
 -- crypto | pair
 -- ----------------

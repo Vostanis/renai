@@ -25,9 +25,10 @@ async fn main() -> Result<()> {
 
     let log_level = match cli.trace {
         TraceLevel::DEBUG => Level::DEBUG,
-        TraceLevel::INFO => Level::INFO,
-        TraceLevel::WARN => Level::WARN,
         TraceLevel::ERROR => Level::ERROR,
+        TraceLevel::INFO => Level::INFO,
+        TraceLevel::TRACE => Level::TRACE,
+        TraceLevel::WARN => Level::WARN,
     };
 
     preprocess(log_level);
@@ -96,7 +97,8 @@ async fn main() -> Result<()> {
             // parse the Insert action arguments
             for dataset in datasets {
                 match dataset {
-                    &StockIndex => {
+                    // ---------------------------------------------------------------------------
+                    StockIndex => {
                         use warehouse::schema::stock::index::Sec;
 
                         // check if ./buffer/submissions.zip exists
@@ -110,7 +112,7 @@ async fn main() -> Result<()> {
                     }
 
                     // ---------------------------------------------------------------------------
-                    &StockPrices => {
+                    StockPrices => {
                         use warehouse::schema::stock::index::Sec;
 
                         info!("Scraping stock price data");
@@ -141,7 +143,7 @@ async fn main() -> Result<()> {
                     }
 
                     // ---------------------------------------------------------------------------
-                    &StockMetrics => {
+                    StockMetrics => {
                         use warehouse::schema::stock::index::Sec;
 
                         // check if ./buffer/companyfacts.zip exists
@@ -173,7 +175,7 @@ async fn main() -> Result<()> {
                     }
 
                     // ---------------------------------------------------------------------------
-                    &CryptoIndex => {
+                    CryptoIndex => {
                         use warehouse::schema::crypto::*;
 
                         info!("Inserting crypto index data");
@@ -184,7 +186,7 @@ async fn main() -> Result<()> {
                     }
 
                     // ---------------------------------------------------------------------------
-                    &CryptoPrices => {
+                    CryptoPrices => {
                         use warehouse::schema::crypto::*;
 
                         info!("Scraping Binance prices");
@@ -205,7 +207,7 @@ async fn main() -> Result<()> {
                     }
 
                     // ---------------------------------------------------------------------------
-                    &Econ => {
+                    Econ => {
                         use warehouse::schema::econ;
 
                         info!("Scraping Fred API");
@@ -223,6 +225,33 @@ async fn main() -> Result<()> {
         // "> renai test"
         // used to test functions
         Test => {
+            use noth_warehouse::schema::econ::us_lobbying::Lda;
+            // use noth_warehouse::schema::stock::filings::scrape_sec_filings;
+
+            // open pg connection
+            // debug!("Establishing PostgreSQL connection");
+            // let (mut pg_client, pg_conn) = pg::connect(&var("POSTGRES_URL")?, NoTls).await?;
+            // tokio::spawn(async move {
+            //     if let Err(e) = pg_conn.await {
+            //         error!("connection error: {}", e);
+            //     }
+            // });
+            // debug!("PostgreSQL connection established");
+            //
+            // scrape_sec_filings(&mut pg_client).await?;
+
+            // open pg connection
+            debug!("Establishing PostgreSQL connection");
+            let (mut pg_client, pg_conn) = pg::connect(&var("POSTGRES_URL")?, NoTls).await?;
+            tokio::spawn(async move {
+                if let Err(e) = pg_conn.await {
+                    error!("connection error: {}", e);
+                }
+            });
+            debug!("PostgreSQL connection established");
+
+            Lda::scrape(&mut pg_client).await?;
+
             // use renai_pg::schema::stock::index::Tickers;
             //
             // let http_client = reqwest::ClientBuilder::new()

@@ -10,7 +10,7 @@ use tracing::{debug, error, trace};
 //////////////////////////////////////////////////////////////////////////////////////
 
 static INSERT_QUERY: &str = "
-    INSERT INTO econ.us (dated, metric, val) VALUES ($1, $2, $3)
+    INSERT INTO econ.us_std (dated, metric, val) VALUES ($1, $2, $3)
     ON CONFLICT (dated, metric, val) DO NOTHING
 ";
 
